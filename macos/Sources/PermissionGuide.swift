@@ -88,12 +88,12 @@ private final class GuideSheet: NSView {
 }
 
 private final class GuidePanel: NSPanel {
-    var tab: ((Bool) -> Void)?
+    var moveKeyboardFocus: ((Bool) -> Void)?
     override func sendEvent(_ event: NSEvent) {
         // Navigation is local to this guide, including when system-wide full keyboard access is off.
         if event.type == .keyDown && event.keyCode == 48 &&
-           event.modifierFlags.intersection([.command,.option,.control]).isEmpty, let tab = tab {
-            tab(event.modifierFlags.contains(.shift))
+           event.modifierFlags.intersection([.command,.option,.control]).isEmpty, let move = moveKeyboardFocus {
+            move(event.modifierFlags.contains(.shift))
             return
         }
         super.sendEvent(event)
@@ -135,7 +135,7 @@ final class PermissionGuide: NSWindowController, NSWindowDelegate {
         scroll.hasVerticalScroller=true;scroll.autohidesScrollers=true;scroll.scrollerStyle = .overlay
         scroll.drawsBackground=true;scroll.backgroundColor=GuideDrawing.paper;scroll.borderType = .noBorder
         panel.contentView=scroll;scroll.documentView=sheet;panel.delegate=self;panel.center()
-        panel.tab = { [weak self] backward in
+        panel.moveKeyboardFocus = { [weak self] backward in
             guard let self=self, let window=self.window else {return}
             let choices=self.buttons.filter(\.isEnabled)
             guard !choices.isEmpty else {return}

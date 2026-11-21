@@ -5,7 +5,11 @@ struct Failure: Error, CustomStringConvertible { let description:String;init(_ s
 func require(_ yes:Bool,_ info:String)throws {if !yes {throw Failure(info)}}
 let app=NSApplication.shared
 let endpoint: DenialFixture = {
-    if CommandLine.arguments.dropFirst(3).first?.hasPrefix("guide-") == true {return SilentEndpoint()}
+    if let phase=CommandLine.arguments.dropFirst(3).first, phase.hasPrefix("guide-") {
+        let fixture=SilentEndpoint()
+        if phase == "guide-restored" {fixture.simulateDenied=true;fixture.missingStatus = .inconsistent}
+        return fixture
+    }
     if KeyMonitor.authorized {return KeyMonitor()}
     return SilentEndpoint()
 }()

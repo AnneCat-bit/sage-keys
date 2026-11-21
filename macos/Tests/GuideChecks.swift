@@ -1,4 +1,5 @@
 import AppKit
+import CoreServices
 
 @MainActor
 struct GuideChecks {
@@ -94,9 +95,17 @@ struct GuideChecks {
             try press("重新檢查權限");try capture("repair")
             try press("如何重新加入新版");try capture("replace")
             try press("檢查安裝與授權")
+            let duplicate=FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathExtension("app")
+            try FileManager.default.copyItem(at:Bundle.main.bundleURL,to:duplicate)
+            defer {try? FileManager.default.removeItem(at:duplicate)}
+            try require(LSRegisterURL(duplicate as CFURL,true) == noErr,"register isolated duplicate")
+            try await daily.wait("registered same-ID test copy") {
+                NSWorkspace.shared.urlsForApplications(withBundleIdentifier:Bundle.main.bundleIdentifier!).contains {$0.resolvingSymlinksInPath().path == duplicate.resolvingSymlinksInPath().path}
+            }
             let install=InstallationCheck(previousHash:"previous-fixture")
+            try require(install.copies.contains {$0.path == duplicate.resolvingSymlinksInPath().path},"registered duplicate missing")
             try require(install.cdHash != nil && install.requirement != nil && install.validity == 0 && install.diskMatchesRunning == true && install.previousHashChanged,"running signature")
-            result["installation"]=["version":install.version,"fromApplications":install.inApplications,"signer":install.signer,"checkedRunningVsDisk":true]
+            result["installation"]=["version":install.version,"fromApplications":install.inApplications,"signer":install.signer,"checkedRunningVsDisk":true,"realRegisteredDuplicateDetected":true]
             result["API"]=["preflight":endpoint.accessReading.preflight,"HID":endpoint.accessReading.hid.rawValue,"lastRequest":endpoint.accessReading.request as Any]
             try press("返回導覽")
             try require(TrustedApps().entries == initial && !pet.qaMonitoring,"repair changed trust or armed")
@@ -106,7 +115,15 @@ struct GuideChecks {
             try require(endpoint.requests == 0 && PermissionProgress().resumeOnLaunch,"restart asked OS")
             guard case .remembered(let saved) = PermissionProgress().pending else {throw Failure("missing draft after restart")}
             try require(saved.bundleID==calc && !TrustedApps().entries.contains(saved),"premature grant")
-            try press("重新檢查權限");try off();try capture("success")
+            try require(PermissionProgress().switchReportedOn && endpoint.accessReading.hid == .granted && !endpoint.hasAccess, "missed contradictory state on restart")
+            try press("重新檢查權限");try off()
+            try require((try? button("確認並開始本次同步"))?.isEnabled != true && endpoint.requests == 0, "HID grant bypassed CG")
+            guard let guide=window else {throw Failure("no restored guide")}
+            _ = try await daily.focus("com.apple.finder")
+            endpoint.simulateDenied=false
+            NSApp.activate(ignoringOtherApps:true);guide.makeKeyAndOrderFront(nil)
+            try await daily.wait("live recheck on guide becoming key") {(try? button("確認並開始本次同步"))?.isEnabled == true}
+            try off();try capture("success")
             try press("確認並開始本次同步")
             _ = try await daily.focus("com.apple.finder")
             try await daily.wait("unknown stays off") {pet.qaArmed && !pet.qaMonitoring}
@@ -115,7 +132,7 @@ struct GuideChecks {
             try daily.menu("立即暫停")
             // The next process must reject a saved identity with a mismatched signing requirement.
             PermissionProgress().stage(.remembered(TrustedApp(name:saved.name,bundleID:calc,signer:saved.signer,requirement:"never")))
-            result["checks"]=["distinct launch, saved signed intent","recheck stays disarmed","manual confirmation saves only calculator","Finder remains unapproved"]
+            result["checks"]=["distinct launch, switch report and signed intent retained","HID granted with CG false kept blocked","return to guide reads fresh grant, stays disarmed","manual confirmation saves only calculator","Finder remains unapproved"]
         case "guide-mismatch":
             try await daily.wait("mismatch guide") {window != nil}
             let before=TrustedApps().entries
