@@ -95,17 +95,18 @@ struct GuideChecks {
             try press("重新檢查權限");try await capture("repair")
             try press("如何重新加入新版");try await capture("replace")
             try press("檢查安裝與授權")
-            let duplicate=FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathExtension("app")
+            // Launch Services can coalesce identical registrations. The installed-copy
+            // check must also find the exact name in either Applications directory.
+            let userApps=try FileManager.default.url(for:.applicationDirectory,in:.userDomainMask,appropriateFor:nil,create:true)
+            let duplicate=userApps.appendingPathComponent(Bundle.main.bundleURL.lastPathComponent)
+            try require(!FileManager.default.fileExists(atPath:duplicate.path),"QA install destination occupied")
             try FileManager.default.copyItem(at:Bundle.main.bundleURL,to:duplicate)
             defer {try? FileManager.default.removeItem(at:duplicate)}
             try require(LSRegisterURL(duplicate as CFURL,true) == noErr,"register isolated duplicate")
-            try await daily.wait("registered same-ID test copy") {
-                NSWorkspace.shared.urlsForApplications(withBundleIdentifier:Bundle.main.bundleIdentifier!).contains {$0.resolvingSymlinksInPath().path == duplicate.resolvingSymlinksInPath().path}
-            }
             let install=InstallationCheck(previousHash:"previous-fixture")
-            try require(install.copies.contains {$0.path == duplicate.resolvingSymlinksInPath().path},"registered duplicate missing")
+            try require(install.copies.contains {$0.standardizedFileURL.path == duplicate.resolvingSymlinksInPath().standardizedFileURL.path},"registered duplicate missing")
             try require(install.cdHash != nil && install.requirement != nil && install.validity == 0 && install.diskMatchesRunning == true && install.previousHashChanged,"running signature")
-            result["installation"]=["version":install.version,"fromApplications":install.inApplications,"signer":install.signer,"checkedRunningVsDisk":true,"realRegisteredDuplicateDetected":true]
+            result["installation"]=["version":install.version,"fromApplications":install.inApplications,"signer":install.signer,"checkedRunningVsDisk":true,"realInstalledDuplicateDetected":true]
             result["API"]=["preflight":endpoint.accessReading.preflight,"HID":endpoint.accessReading.hid.rawValue,"lastRequest":endpoint.accessReading.request as Any]
             try press("返回導覽")
             try require(TrustedApps().entries == initial && !pet.qaMonitoring,"repair changed trust or armed")
