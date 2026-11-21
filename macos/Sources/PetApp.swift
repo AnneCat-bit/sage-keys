@@ -37,6 +37,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
     private var foregroundObserver: NSObjectProtocol?
     private var protectionTimer: Timer?
     private var consentGeneration = 0
+    private var terminationReplyPending = false
     private var syncStatus = "等待已信任 App"
     private var armed=false, paused=false, closing=false
     private var mode="載入中", notice:String?
@@ -369,7 +370,13 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         return false
     }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender:NSApplication) -> Bool {false}
-    @objc private func quit(){NSApp.terminate(nil)}
+    @objc private func quit() {
+        guard !closing else {return}
+        // Finish WebKit work in the ordinary run loop before AppKit enters its quit loop.
+        shutdown { [weak self] in
+            if self?.terminationReplyPending == false {NSApp.terminate(nil)}
+        }
+    }
     @objc private func login(){
         do {
             if SMAppService.mainApp.status == .requiresApproval {SMAppService.openSystemSettingsLoginItems()}
@@ -407,8 +414,9 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         let menu=NSMenu();menuNeedsUpdate(menu);menu.popUp(positioning:nil,at:NSPoint(x:0,y:sender.bounds.maxY),in:sender)
     }
     func applicationShouldTerminate(_ sender:NSApplication)->NSApplication.TerminateReply {
-        if closing {return .terminateLater}
-        shutdown { DispatchQueue.main.async {sender.reply(toApplicationShouldTerminate:true)} }
+        if closing && display == nil {return .terminateNow}
+        terminationReplyPending = true
+        if !closing {shutdown()}
         return .terminateLater
     }
     func applicationWillTerminate(_ notification:Notification) {if !closing {shutdown()}}
@@ -422,6 +430,11 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         display.close { [weak self] in
             self?.display=nil;self?.panel=nil
             completion()
+            if self?.terminationReplyPending == true {
+                RunLoop.main.perform(inModes: [.default, .modalPanel, .eventTracking]) {
+                    NSApp.reply(toApplicationShouldTerminate: true)
+                }
+            }
         }
     }
 }

@@ -97,9 +97,12 @@ final class PetWeb: NSObject, WKNavigationDelegate {
         let loaded=ready
         closed=true;ready=false;invalidateKeys()
         var detached=false
+        var watchdog: Timer?
         func detach() {
             guard !detached else {return}
             detached=true
+            watchdog?.invalidate()
+            watchdog=nil
             web.stopLoading();web.navigationDelegate=nil
             web.configuration.userContentController.removeScriptMessageHandler(forName:"pet")
             web.configuration.userContentController.removeAllUserScripts()
@@ -109,7 +112,10 @@ final class PetWeb: NSObject, WKNavigationDelegate {
         guard loaded else {detach();return}
         web.callAsyncJavaScript("await window.sagePet.close(); return true",arguments:[:],in:nil,in:.page){_ in detach()}
         // A crashed content process must not hold app termination open.
-        DispatchQueue.main.asyncAfter(deadline:.now()+1.5) {detach()}
+        let timer = Timer(timeInterval: 1.5, repeats: false) { _ in detach() }
+        watchdog = timer
+        RunLoop.main.add(timer, forMode: .common)
+        RunLoop.main.add(timer, forMode: .modalPanel)
     }
     func webView(_ webView:WKWebView,decidePolicyFor action:WKNavigationAction,decisionHandler:@escaping(WKNavigationActionPolicy)->Void) {
         let ok=action.targetFrame?.isMainFrame == true && action.request.url?.standardizedFileURL==page.standardizedFileURL
