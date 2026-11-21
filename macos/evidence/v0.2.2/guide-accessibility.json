@@ -1,0 +1,26 @@
+{
+  "endpoint" : "test double, no system event source",
+  "phase" : "guide-accessibility",
+  "pid" : 3727,
+  "realTCCPreflight" : false,
+  "usability" : {
+    "AX" : {
+      "existingQAAccess" : true,
+      "illustrationDescription" : true,
+      "mismatchHeading" : true,
+      "recheckButton" : true
+    },
+    "idleDraws" : 0,
+    "idleHostCPUOneCorePct" : 0.17697134705405454,
+    "largestFontPt" : 34.5,
+    "sizes" : [
+      "356×295",
+      "640×600"
+    ],
+    "spokenOutputEvaluated" : false,
+    "tabAndShiftTab" : true,
+    "textScale" : 1.5,
+    "voiceOverEnabled" : false,
+    "voiceOverLaunch" : "launch requested"
+  }
+}

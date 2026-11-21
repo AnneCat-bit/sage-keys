@@ -1,0 +1,14 @@
+compare-update	Compare signed releases at the same installation path	2026-11-21T16:08:09.0894810Z Identifier=io.github.annecat-bit.sagekeys
+compare-update	Compare signed releases at the same installation path	2026-11-21T16:08:09.1162120Z CDHash=b7656eeb2a6f5ee2bf4c7eeb18aaced7325780e9
+compare-update	Compare signed releases at the same installation path	2026-11-21T16:08:09.1203960Z Signature=adhoc
+compare-update	Compare signed releases at the same installation path	2026-11-21T16:08:09.1204740Z TeamIdentifier=not set
+compare-update	Compare signed releases at the same installation path	2026-11-21T16:08:09.1205600Z # designated => cdhash H"b7656eeb2a6f5ee2bf4c7eeb18aaced7325780e9"
+compare-update	Compare signed releases at the same installation path	2026-11-21T16:08:23.2780830Z GUIDE_COST {"guideWindowVerified":true,"hostCPUOneCorePct":0.2431331166730232,"hostMedianRSSMiB":90.078125,"seconds":8.2259464583333397,"version":"0.2.1"}
+compare-update	Compare signed releases at the same installation path	2026-11-21T16:08:23.3928990Z Identifier=io.github.annecat-bit.sagekeys
+compare-update	Compare signed releases at the same installation path	2026-11-21T16:08:23.3930300Z CDHash=164c173d3c302acf5c208282dd46e5565b314ffb
+compare-update	Compare signed releases at the same installation path	2026-11-21T16:08:23.3931830Z Signature=adhoc
+compare-update	Compare signed releases at the same installation path	2026-11-21T16:08:23.3932180Z TeamIdentifier=not set
+compare-update	Compare signed releases at the same installation path	2026-11-21T16:08:23.3932530Z # designated => cdhash H"164c173d3c302acf5c208282dd46e5565b314ffb"
+compare-update	Compare signed releases at the same installation path	2026-11-21T16:08:35.2303610Z GUIDE_COST {"guideWindowVerified":true,"hostCPUOneCorePct":0.11843351600601117,"hostMedianRSSMiB":87.09375,"seconds":8.4435557916666539,"version":"0.2.2"}
+compare-update	Compare signed releases at the same installation path	2026-11-21T16:08:35.3238280Z test-requirement: code failed to satisfy specified code requirement(s)
+compare-update	Compare signed releases at the same installation path	2026-11-21T16:08:35.3243410Z New build fails previous designated requirement at identical installation path.
