@@ -1,0 +1,46 @@
+"""Exercise Launch Services, including actual quit and re-launch, on the macOS runner."""
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+app, evidence, probe = map(Path, sys.argv[1:])
+command = ["/usr/bin/open", "-W", "-n", "--stdout", str(evidence/"native-tests.log"),
+           "--stderr", str(evidence/"native-stderr.log"), str(app), "--args", str(evidence), str(probe)]
+with subprocess.Popen(command) as launch:
+    pid_file = evidence/"qa-pid"
+    deadline = time.monotonic() + 35
+    while not pid_file.exists() and time.monotonic() < deadline and launch.poll() is None:
+        time.sleep(0.1)
+    if not pid_file.exists():
+        raise RuntimeError("QA did not launch")
+    host = pid_file.read_text().strip()
+    with subprocess.Popen([sys.executable, "macos/Tests/processes.py", str(evidence), host]) as sampler:
+        try:
+            launch.wait(timeout=175)
+        finally:
+            try:
+                os.kill(int(host), 15)
+            except ProcessLookupError:
+                pass
+        sampler.wait(timeout=10)
+print((evidence/"native-tests.log").read_text(), flush=True)
+report = json.loads((evidence/"mac-results.json").read_text())
+if report["failed"]:
+    raise RuntimeError(report["failed"])
+
+launches = []
+for phase in ["quit-active", "restart-off"]:
+    subprocess.run(command[:3] + [str(app), "--args", str(evidence), str(probe), phase], check=True, timeout=35)
+    state = json.loads((evidence/(phase+".json")).read_text())
+    try:
+        os.kill(state["pid"], 0)
+    except ProcessLookupError:
+        launches.append(state)
+    else:
+        raise RuntimeError("Quit menu left process running")
+assert launches[0]["pid"] != launches[1]["pid"]
+assert launches[0]["activeAtQuit"] and not launches[1]["activeAtQuit"]
+print("PASS quit and restart", launches)

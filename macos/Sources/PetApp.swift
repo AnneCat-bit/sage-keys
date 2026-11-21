@@ -13,6 +13,12 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
     #if SAGE_QA
     var testProbe: WKUserScript?
     private(set) var reopenCount = 0
+    var qaArmed: Bool {armed}
+    var qaMonitoring: Bool {monitor.running}
+    var qaActiveID: String? {monitor.running ? verifiedFront?.bundleIdentifier : nil}
+    var qaWatching: Bool {foregroundObserver != nil || protectionTimer != nil}
+    var qaStatus: String {label.stringValue}
+    func qaDenyAccess(_ deny: Bool) {monitor.simulateDenied = deny}
     #endif
     private let monitor=KeyMonitor()
     private var item: NSStatusItem!
@@ -249,8 +255,11 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         alert.showsSuppressionButton = candidate != nil
         alert.suppressionButton?.title = "記住此 App，下次手動開啟同步時自動跟隨"
         alert.suppressionButton?.state = .off
-        guard alert.runModal() == .alertFirstButtonReturn, generation == consentGeneration,
-              requestAccess(for: generation), KeyMonitor.safeSession() else {return}
+        let response = alert.runModal()
+        guard generation == consentGeneration else {return}
+        guard response == .alertFirstButtonReturn else {pauseAll("已取消允許");return}
+        guard requestAccess(for: generation) else {return}
+        guard KeyMonitor.safeSession() else {pauseAll("系統安全輸入保護中或工作階段已鎖定");return}
         let remember = alert.showsSuppressionButton && alert.suppressionButton?.state == .on
         guard approve(front, saving: remember, candidate: candidate, prior: prior) else {
             pauseAll("App 身分有變，請重新選取");return
@@ -351,7 +360,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         #if SAGE_QA
         reopenCount += 1
         #endif
-        if !panelShown {show()}
+        if panelShown {panel.orderFrontRegardless()} else {show()}
         return false
     }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender:NSApplication) -> Bool {false}

@@ -135,6 +135,10 @@ app.delegate=delegate
         try require(delegate.panel.isVisible && NSWorkspace.shared.frontmostApplication==target,"panel took focus")
         return ["foreground":"com.apple.TextEdit","visible":true,"foregroundPreserved":true,"sentSystemKeys":0]
     }
+    let daily = DailyChecks(pet: delegate)
+    await record("reopen") {try await daily.reopen()}
+    await record("trustAndForeground") {try await daily.follow()}
+    await record("protectionTransitions") {try await daily.protection()}
     await record("idle") {
         delegate.display.setKeys([]);await sleepMS(2000)
         let a=try await js("[qa.draws,qa.requests]") as! [Int]
@@ -193,5 +197,30 @@ app.delegate=delegate
     catch {print(error);exit(2)}
     exit(failed.isEmpty ? 0:1)
 }
-DispatchQueue.main.async {Task {@MainActor in await runChecks()}}
+@MainActor func coldLaunch(_ phase: String) async {
+    do {
+        let checks = DailyChecks(pet: delegate)
+        try await checks.wait("cold launch display") {delegate.display?.ready == true}
+        let saved = TrustedApps().entries.map { $0.bundleID }
+        try require(saved == ["com.apple.TextEdit"], "trusted app missing after process restart")
+        let initial = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? ""
+        let editor = try await checks.focus("com.apple.TextEdit")
+        try require(!delegate.qaArmed && !delegate.qaWatching && !delegate.qaMonitoring && delegate.panel.isVisible, "new launch armed or invisible")
+        if phase == "quit-active" {
+            try checks.menu("開啟本次")
+            try await checks.wait("manual enable before quit") {delegate.qaActiveID == editor.bundleIdentifier}
+        }
+        let data: [String: Any] = ["pid":getpid(), "savedIDs":saved, "startedVisible":true, "startedOff":true,
+                                   "foregroundAtLaunch":initial, "activeAtQuit":delegate.qaMonitoring]
+        try JSONSerialization.data(withJSONObject:data).write(to:evidence.appendingPathComponent(phase+".json"))
+        try checks.menu("退出 Sage Keys")
+    } catch {print(error);exit(1)}
+}
+DispatchQueue.main.async {Task {@MainActor in
+    if let phase = CommandLine.arguments.dropFirst(3).first {await coldLaunch(phase)}
+    else {
+        try String(getpid()).write(to:evidence.appendingPathComponent("qa-pid"),atomically:true,encoding:.utf8)
+        await runChecks()
+    }
+}}
 app.run()
