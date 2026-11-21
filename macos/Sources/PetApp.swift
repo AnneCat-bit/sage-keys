@@ -38,6 +38,8 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
     private var protectionTimer: Timer?
     private let progress = PermissionProgress()
     private var guide: PermissionGuide?
+    private var reportedAtLaunch = false
+    private var recordedSigningHash = false
     private var oneTimeTarget: NSRunningApplication?
     private var oneTimeSignature: TrustedApp?
     private var needsPermissionHelp = false
@@ -52,6 +54,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
     private var demoWork: DispatchWorkItem?
 
     func applicationDidFinishLaunching(_ notification:Notification) {
+        reportedAtLaunch = progress.switchReportedOn
         prefs.register(defaults:["eco":true,"pinned":true,"muted":false,"top":false,"tone":"rainy"])
         let resources=Bundle.main.resourceURL!.appendingPathComponent("Pet")
         #if SAGE_QA
@@ -187,6 +190,10 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
     private func beginSession() {
         guard display.ready, !closing else {return}
         if let issue = protectionIssue {pauseAll(issue);return}
+        if !recordedSigningHash {
+            progress.rememberHash(InstallationCheck(previousHash:progress.lastAuthorizedHash).cdHash)
+            recordedSigningHash=true
+        }
         show()
         armed = true
         paused = false
@@ -253,7 +260,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         progress.stage(intent)
         oneTimeTarget = process
         oneTimeSignature = signature
-        monitor.requestListenAccess()
+        if monitor.accessReading.request == nil {monitor.requestListenAccess()}
         guard generation == consentGeneration, !closing else {return false}
         pauseAll("請完成輸入監察設定")
         openGuide()
@@ -296,6 +303,11 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         else if !monitor.hasAccess {progress.stage(.help)}
         if guide == nil {
             let view = PermissionGuide()
+            view.inspect = { [weak self] in InstallationCheck(previousHash:self?.progress.lastAuthorizedHash) }
+            view.reportSwitch = { [weak self] on in
+                self?.progress.switchReportedOn = on
+                self?.updateGuide()
+            }
             view.recheck = { [weak self] in self?.updateGuide() }
             view.finish = { [weak self] in self?.finishGuide() }
             view.chooseTarget = { [weak self] in
@@ -330,8 +342,15 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         guide?.present()
     }
 
+    @objc private func openInstallationCheck() {
+        openGuide()
+        guide?.diagnostics()
+    }
+
     private func updateGuide(_ hint: String = "") {
-        let status = monitor.listenStatus
+        let reading = monitor.accessReading
+        let status = reading.status
+        if reading.preflight {progress.switchReportedOn=false;reportedAtLaunch=false}
         needsPermissionHelp = status != .granted
         let permission = progress.statusText(status)
         var target: String
@@ -348,8 +367,8 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
             canConfirm = !trust.entries.isEmpty
             target = canConfirm ? "已保存的信任清單仍在。確認後才會開始本次同步。" : "完成後切回目標 App，再從選單允許該 App。"
         }
-        guide?.update(status:permission, target:"跨 App 鍵帽和錄音需要系統允許讀取物理鍵位。\n" + target,
-                      authorized:status == .granted, canStart:status == .granted && canConfirm && display.ready, hint:hint)
+        guide?.update(status:permission, target:target, reading:reading, reported:progress.switchReportedOn,
+                      reopened:reportedAtLaunch, canStart:reading.preflight && canConfirm && display.ready, hint:hint)
         refresh()
     }
 
@@ -535,6 +554,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         menu.addItem(withTitle: label.stringValue, action: nil, keyEquivalent: "")
         _=entry(menu,armed ? "立即暫停同步":"開啟本次跨 App 同步",#selector(toggleSync))
         _=entry(menu,"輸入監察授權導覽…",#selector(openGuide))
+        _=entry(menu,"檢查安裝與授權…",#selector(openInstallationCheck))
         let manage = NSMenuItem(title: "管理已信任 App", action: nil, keyEquivalent: "")
         menu.addItem(manage); manage.submenu = trustMenu()
         if armed {_=entry(menu,"允許另一個目前 App…",#selector(addFront))}
