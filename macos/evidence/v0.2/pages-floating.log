@@ -1,0 +1,4 @@
+PASS native 400×250 window, reposition, resize to 300×190, same canvas and GL context
+PASS keyboard feedback from both Sage Keys windows, synchronized mute and quality
+PASS separate page typing causes no feedback, return button, native close, opener refresh
+PASS unsupported API hint and continued main studio use

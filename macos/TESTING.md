@@ -1,4 +1,6 @@
-# Sage Keys for Mac 驗收
+# Sage Keys for Mac v0.1 驗收
+
+[v0.2 最新驗收與版本紀錄](TESTING-v0.2.md)
 
 **版本 B，可下載的 Apple Silicon 個人測試版。** 在標準 GitHub-hosted `macos-15` ARM64 虛擬機使用 Xcode 16.4、Swift 6.1.2 編譯，實際運行系統為 macOS 15.8.2（24H232），部署下限 13.0。執行程式提交為 `f23b339`。工作流程使用唯讀 repository 權限，本次 11 組原生檢查全部通過。[原始碼版本](https://github.com/AnneCat-bit/sage-keys/tree/f23b339/macos) · [完整 Actions log](https://github.com/AnneCat-bit/sage-keys/actions/runs/44912535484) · [編譯摘錄](evidence/build-excerpt.txt)
 

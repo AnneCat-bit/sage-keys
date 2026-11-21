@@ -52,4 +52,4 @@ GitHub Pages 從 `main` 的 `/(root)` 發布，沒有建置步驟。網站使用
 
 ## Sage Keys for Mac
 
-Apple Silicon 個人測試版使用 AppKit 非啟用式浮窗與本機 WKWebView，可離線運作。使用者可在 macOS 授權後，逐一允許本次要同步的前景 App。下載、單一 App 核准方式、實測數據與限制見原生版文件。[Mac 下載及安裝](macos/README.md) · [macOS 驗收紀錄](macos/TESTING.md)
+Apple Silicon 個人測試版使用 AppKit 非啟用式浮窗與本機 WKWebView，可離線運作。v0.2 支援從 Finder 重開已隱藏的桌寵。首次允許前景 App 時可選擇保存其簽署身分，之後每次啟動仍要手動開啟同步。下載、單一 App 核准方式、實測數據與限制見原生版文件。[Mac 下載及安裝](macos/README.md) · [macOS v0.2 驗收紀錄](macos/TESTING-v0.2.md)
