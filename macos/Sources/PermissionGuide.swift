@@ -4,14 +4,6 @@ import IOKit.hid
 enum ListenStatus: String {
     case granted, denied, undetermined, inconsistent
 
-    static func current(preflight: Bool) -> Self {
-        if preflight {return .granted}
-        switch IOHIDCheckAccess(kIOHIDRequestTypeListenEvent) {
-        case kIOHIDAccessTypeDenied: return .denied
-        case kIOHIDAccessTypeUnknown: return .undetermined
-        default: return .inconsistent
-        }
-    }
 }
 
 // A pending choice has no monitoring authority. A one-time grant never saves
@@ -32,6 +24,14 @@ final class PermissionProgress {
         pending = defaults.data(forKey: key).flatMap {try? PropertyListDecoder().decode(PendingConsent.self, from: $0)}
     }
 
+    var switchReportedOn: Bool {
+        get {defaults.bool(forKey:"inputGuide.switchReportedOn")}
+        set {defaults.set(newValue, forKey:"inputGuide.switchReportedOn")}
+    }
+    var lastAuthorizedHash: String? {defaults.string(forKey:"inputGuide.lastGrantedHash")}
+    func rememberHash(_ hash: String?) {
+        if let hash = hash, hash != lastAuthorizedHash {defaults.set(hash,forKey:"inputGuide.lastGrantedHash")}
+    }
     var resumeOnLaunch: Bool {pending != nil && defaults.bool(forKey: "inputGuide.resume")}
     func stage(_ choice: PendingConsent) {
         if let data = try? PropertyListEncoder().encode(choice) {
@@ -55,7 +55,7 @@ final class PermissionProgress {
             return past == build ? "之前有權限，目前已失效。請重新授權。" : "更新後，新版本目前沒有輸入監察權限。"
         }
         switch status {
-        case .denied: return "macOS 目前拒絕輸入監察存取。可在系統設定更改。"
+        case .denied: return "Sage Keys 還未獲得有效的鍵盤監察權限。"
         case .undetermined: return "尚未取得權限。macOS 未回報是否已作選擇。"
         default: return "系統權限狀態未能確定。請檢查設定後再試。"
         }

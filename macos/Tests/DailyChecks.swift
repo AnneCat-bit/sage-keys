@@ -12,7 +12,10 @@ final class SilentEndpoint: DenialFixture {
     var simulateDenied = false
     var hasAccess: Bool { !simulateDenied }
     var missingStatus = ListenStatus.denied
-    var listenStatus: ListenStatus {hasAccess ? .granted : missingStatus}
+    var accessReading: AccessReading {
+        let hid: AccessReading.HID = hasAccess ? .granted : (missingStatus == .denied ? .denied : (missingStatus == .inconsistent ? .granted : .unknown))
+        return AccessReading(preflight:hasAccess,hid:hid,request:requests == 0 ? nil : grantOnRequest)
+    }
     var grantOnRequest = false
     private(set) var requests = 0
     func requestListenAccess() {requests += 1;if grantOnRequest {simulateDenied = false}}

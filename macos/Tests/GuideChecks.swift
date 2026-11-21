@@ -34,7 +34,7 @@ struct GuideChecks {
         defer {prefs.removePersistentDomain(forName:suite)}
         let old = PermissionProgress(prefs,build:"2")
         try require(old.statusText(.undetermined).contains("未回報"),"unknown guessed")
-        try require(old.statusText(.denied).contains("拒絕"),"denied message")
+        try require(old.statusText(.denied).contains("未獲得"),"denied message")
         old.observedGrant()
         try require(old.statusText(.denied).contains("失效"),"previously granted")
         let update = PermissionProgress(prefs,build:"3")
