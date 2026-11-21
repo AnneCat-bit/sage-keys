@@ -21,7 +21,18 @@ function makeFlat(host) {
   }
   host.replaceChildren(board);
   return {
-    move(code, down) { caps.get(code)?.classList.toggle('is-down', down > .4); },
+    move(code, down) {
+      const cap=caps.get(code);
+      for (const animation of cap.getAnimations?.() || []) animation.cancel();
+      cap.classList.toggle('is-down',down>0);
+    },
+    release(code) {
+      const cap=caps.get(code);
+      cap.classList.remove('is-down');
+      // Draw a short tap even if down/up arrive before the next paint.
+      cap.animate?.([{transform:'translateY(2px)',filter:'brightness(.85)'},
+        {transform:'none',filter:'brightness(1)'}],{duration:105,easing:'ease-out'});
+    },
     draw(_, __, zoom) { board.style.setProperty('--scale', zoom); }
   };
 }
@@ -167,7 +178,11 @@ export function createView(host, quality, onChange) {
     flat = true;
     view = 'top';
     backend = makeFlat(host);
-    for (const code of pressed) backend.move(code,1);
+    moving.clear(); unpainted.clear(); depths.clear();
+    for (const code of pressed) {
+      depths.set(code,1);
+      backend.move(code,1);
+    }
     notify(); requestDraw();
   }
   function setActive(value) {
@@ -268,6 +283,11 @@ export function createView(host, quality, onChange) {
         backend?.move(code,1);
       } else {
         if (!pressed.delete(code)) return false;
+        if (flat) {
+          backend.release(code);
+          unpainted.delete(code); depths.delete(code);
+          return true;
+        }
         moving.set(code,performance.now());
       }
       requestDraw();

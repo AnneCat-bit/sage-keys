@@ -227,9 +227,27 @@ with sync_playwright() as pw:
     field.click()
     page.keyboard.down('a')
     assert page.locator('.fallback-board .is-down').count()==1
+    page.evaluate('''() => {
+      const cap=document.querySelector('.fallback-board .is-down');
+      document.addEventListener('keyup',()=>{window.releaseAt=performance.now();},{once:true});
+      const observer=new MutationObserver(()=>{
+        if (!cap.classList.contains('is-down')) {
+          window.releaseMs=performance.now()-window.releaseAt;
+          const [rebound]=cap.getAnimations();
+          window.returnDuration=rebound?.effect.getTiming().duration;
+          window.flatSettled=rebound?.finished.then(()=>getComputedStyle(cap).transform);
+          observer.disconnect();
+        }
+      });
+      observer.observe(cap,{attributes:true,attributeFilter:['class']});
+    }''')
     page.keyboard.up('a')
-    page.wait_for_timeout(220)
+    page.locator('.fallback-board .is-down').wait_for(state='detached',timeout=1000)
     assert page.locator('.fallback-board .is-down').count()==0
+    assert page.evaluate('window.releaseMs')<100
+    assert page.evaluate('window.returnDuration')==105
+    assert page.evaluate('window.flatSettled')=='none'
+    print('2D cap released after',round(page.evaluate('window.releaseMs'),1),'ms',flush=True)
     assert field.input_value()=='a'
     passed('Mobile width, WebGL-disabled fallback and physical typing')
     assert not errors,errors
