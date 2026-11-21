@@ -140,9 +140,41 @@ app.delegate=delegate
         return ["foreground":"com.apple.TextEdit","visible":true,"foregroundPreserved":true,"sentSystemKeys":0]
     }
     let daily = DailyChecks(pet: delegate, endpoint: endpoint)
-    await record("reopen") {try await daily.reopen()}
+    await record("reopen") {
+        await sleepMS(500)
+        _ = try await js("qa.rest=null;qa.pixels()")
+        delegate.display.setKeys(["KeyA"])
+        try await wait("qa.pixels()>20")
+        let heldPixels = try await js("qa.pixels()")
+        var result = try await daily.reopen()
+        try await wait("qa.pixels()===0 && qa.contexts===1")
+        result["pixelsBeforeClose"] = heldPixels
+        result["pixelsAfterRestore"] = 0
+        result["contexts"] = 1
+        return result
+    }
     await record("trustAndForeground") {try await daily.follow()}
     await record("protectionTransitions") {try await daily.protection()}
+    await record("trustedIdleAndStandby") {
+        var deltas: [String: [Int]] = [:]
+        _ = try await daily.focus("com.apple.TextEdit")
+        try daily.menu("開啟本次")
+        for (phase, id) in [("trustedIdle","com.apple.TextEdit"), ("untrustedStandby","com.apple.finder")] {
+            _ = try await daily.focus(id)
+            try await daily.wait(phase) {delegate.qaArmed && delegate.qaMonitoring == (phase == "trustedIdle")}
+            await sleepMS(600)
+            let before = try await js("[qa.draws,qa.requests,qa.starts]") as! [Int]
+            try Data(phase.utf8).write(to:evidence.appendingPathComponent("phase"),options:.atomic)
+            await sleepMS(4200)
+            let after = try await js("[qa.draws,qa.requests,qa.starts]") as! [Int]
+            try Data("finished".utf8).write(to:evidence.appendingPathComponent("phase"),options:.atomic)
+            try require(after == before, phase + " scheduled work while idle")
+            deltas[phase] = zip(after,before).map { $0.0 - $0.1 }
+        }
+        try daily.menu("立即暫停")
+        try daily.menu("試敲")
+        return deltas
+    }
     await record("idle") {
         delegate.display.setKeys([]);await sleepMS(2000)
         let a=try await js("[qa.draws,qa.requests]") as! [Int]
@@ -165,6 +197,7 @@ app.delegate=delegate
             }
             await sleepMS(250)
             let draws=(try await js("qa.draws") as! Int)-before
+            try require(draws > 0, label+" did not draw")
             out[label]=["seconds":ProcessInfo.processInfo.systemUptime-start,"strokes":24,"drawCalls":draws,"renderedFrames":draws/5]
         }
         try Data("idle".utf8).write(to:evidence.appendingPathComponent("phase"),options:.atomic)

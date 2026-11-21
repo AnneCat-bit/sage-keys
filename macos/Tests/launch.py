@@ -20,11 +20,12 @@ with subprocess.Popen(command) as launch:
     with subprocess.Popen([sys.executable, "macos/Tests/processes.py", str(evidence), host]) as sampler:
         try:
             launch.wait(timeout=175)
-        finally:
+        except subprocess.TimeoutExpired:
             try:
                 os.kill(int(host), 15)
             except ProcessLookupError:
                 pass
+            raise
         sampler.wait(timeout=10)
 print((evidence/"native-tests.log").read_text(), flush=True)
 report = json.loads((evidence/"mac-results.json").read_text())

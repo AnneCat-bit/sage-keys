@@ -74,7 +74,8 @@ struct DailyChecks {
         func buttons(_ view: NSView) -> [NSButton] {
             (view as? NSButton).map { [$0] } ?? view.subviews.flatMap(buttons)
         }
-        let timer = Timer(timeInterval: 0.12, repeats: true) { timer in
+        // This timer is installed exclusively on RunLoop.main in AppKit's modal mode.
+        let tick: @MainActor (Timer) -> Void = { timer in
             guard let content = NSApp.modalWindow?.contentView else {return}
             let all = buttons(content)
             if let action = all.first(where: {$0.title == title}) {
@@ -89,6 +90,9 @@ struct DailyChecks {
                 timer.invalidate()
                 action.performClick(nil)
             } else if Date() > end {timer.invalidate(); NSApp.abortModal()}
+        }
+        let timer = Timer(timeInterval: 0.12, repeats: true) { timer in
+            MainActor.assumeIsolated {tick(timer)}
         }
         RunLoop.main.add(timer, forMode: .modalPanel)
         defer {timer.invalidate()}

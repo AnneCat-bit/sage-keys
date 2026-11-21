@@ -37,7 +37,7 @@ with (root/"process.csv").open("w") as output:
         group={p for p,(_,_,wk) in data.items() if wk and p not in existing}
         if previous:
             then,last,prev_phase=previous
-            if phase==prev_phase and phase in ("idle","typing15","typing30"):
+            if phase==prev_phase and phase in ("idle","typing15","typing30","trustedIdle","untrustedStandby"):
                 elapsed=now-then
                 def cost(pids):
                     return round(100*sum(max(0,data[p][1]-last[p][1]) for p in pids if p in last)/elapsed,2)

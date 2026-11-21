@@ -135,9 +135,10 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
     }
 
     private func detachFront() {
+        let hadTarget = verifiedFront != nil || monitor.running
         verifiedFront = nil
         monitor.stop()
-        display.clear()
+        if hadTarget {display.clear()}
     }
 
     private func frontChanged() {
@@ -175,7 +176,6 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         armed = true
         paused = false
         notice = nil
-        display.setPaused(false)
         if foregroundObserver == nil {
             foregroundObserver = NSWorkspace.shared.notificationCenter.addObserver(
                 forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
@@ -215,7 +215,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
     private func refresh() {
         guard item != nil else{return}
         label.stringValue = armed ? syncStatus : ("同步已關閉" + (notice.map { " · " + $0 } ?? ""))
-        label.toolTip=label.stringValue
+        label.toolTip=label.stringValue + " · " + mode
         syncButton.title=armed ? "暫停":"同步"
         muteButton.title=prefs.bool(forKey:"muted") ? "開聲":"靜音"
         item.button?.image=NSImage(systemSymbolName:monitor.running ? "keyboard.fill":"keyboard",accessibilityDescription:"Sage Keys")
