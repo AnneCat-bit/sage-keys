@@ -3,13 +3,22 @@ import Darwin
 
 extension GuideChecks {
     func descendants(_ view:NSView)->[NSView] {[view]+view.subviews.flatMap(descendants)}
-    func capture(_ name:String) throws {
+    func capture(_ name:String) async throws {
         guard let content=window?.contentView,
               let bitmap=content.bitmapImageRepForCachingDisplay(in:content.bounds) else {throw Failure("guide image")}
         content.layoutSubtreeIfNeeded();content.displayIfNeeded()
         content.cacheDisplay(in:content.bounds,to:bitmap)
         guard let png=bitmap.representation(using:.png,properties:[:]) else {throw Failure("PNG")}
         try png.write(to:evidence.appendingPathComponent("guide-"+name+".png"))
+        guard let w=window else {throw Failure("window disappeared")}
+        let original=content.bounds.size
+        for width: CGFloat in [356,640] {
+            w.setContentSize(NSSize(width:width,height:330))
+            try await Task.sleep(nanoseconds:120_000_000)
+            try checkLayout()
+        }
+        w.setContentSize(original)
+        try await Task.sleep(nanoseconds:120_000_000)
     }
     func checkLayout() throws {
         guard let scroll=window?.contentView as? NSScrollView,let doc=scroll.documentView else {throw Failure("scrollable guide")}

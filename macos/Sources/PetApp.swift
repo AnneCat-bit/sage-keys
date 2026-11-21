@@ -309,7 +309,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         else if !monitor.hasAccess {progress.stage(.help)}
         if guide == nil {
             let view = PermissionGuide()
-            view.inspect = { [weak self] in InstallationCheck(previousHash:self?.progress.lastAuthorizedHash) }
+            view.inspect = { [weak self] in InstallationCheck(previousHash:self?.progress.lastAuthorizedHash,previousBuild:self?.progress.lastAuthorizedBuild) }
             view.reportSwitch = { [weak self] on in
                 self?.progress.switchReportedOn = on
                 self?.updateGuide()

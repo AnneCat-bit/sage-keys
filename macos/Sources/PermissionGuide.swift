@@ -26,6 +26,7 @@ final class PermissionProgress {
         get {defaults.bool(forKey:"inputGuide.switchReportedOn")}
         set {defaults.set(newValue, forKey:"inputGuide.switchReportedOn")}
     }
+    var lastAuthorizedBuild: String? {defaults.string(forKey:"inputGuide.lastGrantedBuild")}
     var lastAuthorizedHash: String? {defaults.string(forKey:"inputGuide.lastGrantedHash")}
     func rememberHash(_ hash: String?) {
         if let hash = hash, hash != lastAuthorizedHash {defaults.set(hash,forKey:"inputGuide.lastGrantedHash")}
@@ -270,7 +271,10 @@ final class PermissionGuide: NSWindowController, NSWindowDelegate {
     @objc private func check(){
         install=nil
         recheck()
-        if !authorized && !reported && page == .status {hint="這份 App 暫未通過檢查。若開關已開，請選上方對應選項核對版本。";render(reset:false)}
+        if !authorized {
+            hint = reported ? "剛剛已重新檢查。開關已開的回報已保留，這份 App 的權限仍未生效。" : "剛剛已重新檢查。若開關已開，請核對目前執行的版本。"
+            render(reset:false)
+        }
         let announcement = authorized ? "系統權限有效，本次同步仍然關閉" : "這份 App 的權限尚未生效"
         NSAccessibility.post(element:sheet,notification:.announcementRequested,userInfo:[.announcement:announcement,.priority:NSAccessibilityPriorityLevel.medium.rawValue])
     }

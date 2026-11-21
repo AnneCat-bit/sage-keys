@@ -88,12 +88,12 @@ struct GuideChecks {
             }
             try off()
             try daily.menu("輸入監察授權導覽")
-            try capture("status")
-            try press("尚未開啟或找不到");try capture("settings")
+            try await capture("status")
+            try press("尚未開啟或找不到");try await capture("settings")
             try press("開關已開，仍無法同步");try off()
             try require(PermissionProgress().switchReportedOn && (try? button("確認並開始本次同步"))?.isEnabled != true,"reported switch granted access")
-            try press("重新檢查權限");try capture("repair")
-            try press("如何重新加入新版");try capture("replace")
+            try press("重新檢查權限");try await capture("repair")
+            try press("如何重新加入新版");try await capture("replace")
             try press("檢查安裝與授權")
             let duplicate=FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathExtension("app")
             try FileManager.default.copyItem(at:Bundle.main.bundleURL,to:duplicate)
@@ -123,7 +123,7 @@ struct GuideChecks {
             endpoint.simulateDenied=false
             NSApp.activate(ignoringOtherApps:true);guide.makeKeyAndOrderFront(nil)
             try await daily.wait("live recheck on guide becoming key") {(try? button("確認並開始本次同步"))?.isEnabled == true}
-            try off();try capture("success")
+            try off();try await capture("success")
             try press("確認並開始本次同步")
             _ = try await daily.focus("com.apple.finder")
             try await daily.wait("unknown stays off") {pet.qaArmed && !pet.qaMonitoring}
