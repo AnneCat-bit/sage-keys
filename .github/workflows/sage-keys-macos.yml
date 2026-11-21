@@ -53,3 +53,17 @@ jobs:
           path: macos/build/evidence/
           if-no-files-found: warn
           retention-days: 30
+  settings-links:
+    strategy:
+      matrix:
+        os: [macos-15, macos-26]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Observe the actual System Settings destination
+        run: |
+          xcrun swiftc macos/Sources/SettingsLinks.swift macos/Tests/SettingsProbe/main.swift -o "$RUNNER_TEMP/settings-probe"
+          "$RUNNER_TEMP/settings-probe"
