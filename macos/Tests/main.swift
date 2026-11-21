@@ -117,6 +117,24 @@ app.delegate=delegate
         try menu("試敲")
         return ["simulatedSleepPaused":true,"normalAndFloating":true,"hiddenDrawDelta":0,"hiddenSoundDelta":0,"resumed":true]
     }
+    await record("foregroundWindow") {
+        guard let editor=NSWorkspace.shared.urlForApplication(withBundleIdentifier:"com.apple.TextEdit") else {throw Failure("TextEdit unavailable")}
+        let config=NSWorkspace.OpenConfiguration()
+        config.activates=true
+        let target:NSRunningApplication = try await withCheckedThrowingContinuation { continuation in
+            NSWorkspace.shared.openApplication(at:editor,configuration:config) {other,error in
+                if let other=other {continuation.resume(returning:other)}
+                else {continuation.resume(throwing:error ?? Failure("TextEdit launch failed"))}
+            }
+        }
+        _=target.activate(options:[.activateIgnoringOtherApps])
+        let end=Date().addingTimeInterval(4)
+        while NSWorkspace.shared.frontmostApplication != target && Date()<end {await sleepMS(90)}
+        try require(NSWorkspace.shared.frontmostApplication==target,"test did not acquire foreground")
+        delegate.panel.orderFrontRegardless();await sleepMS(250)
+        try require(delegate.panel.isVisible && NSWorkspace.shared.frontmostApplication==target,"panel took focus")
+        return ["foreground":"com.apple.TextEdit","visible":true,"foregroundPreserved":true,"sentSystemKeys":0]
+    }
     await record("idle") {
         delegate.display.setKeys([]);await sleepMS(2000)
         let a=try await js("[qa.draws,qa.requests]") as! [Int]
@@ -143,6 +161,7 @@ app.delegate=delegate
         }
         try Data("idle".utf8).write(to:evidence.appendingPathComponent("phase"),options:.atomic)
         await sleepMS(3500)
+        try Data("finished".utf8).write(to:evidence.appendingPathComponent("phase"),options:.atomic)
         return out
     }
     await record("offlinePolicy") {
@@ -159,9 +178,15 @@ app.delegate=delegate
     await record("shutdown") {
         weak var host=delegate.display
         weak var web=delegate.display?.web
-        delegate.shutdown();await sleepMS(500)
+        var retained:WKWebView?=delegate.display.web
+        await withCheckedContinuation { continuation in delegate.shutdown {continuation.resume()} }
+        let state=try await retained!.evaluateJavaScript("({audio:qa.audio?.state, lost:qa.gl.isContextLost(), canvases:document.querySelectorAll('canvas').length})") as? [String:Any]
+        retained=nil
+        // Allow the bounded native close watchdog to release its closure.
+        await sleepMS(1800)
+        try require(state?["audio"] as? String=="closed" && state?["lost"] as? Bool==true && state?["canvases"] as? Int==0,"JS resources not released")
         try require(host==nil && web==nil,"native display retained")
-        return ["hostReleased":true,"webViewReleased":true]
+        return ["hostReleased":true,"webViewReleased":true,"audioClosed":true,"webglLost":true,"canvases":0]
     }
     let report:[String:Any]=["system":ProcessInfo.processInfo.operatingSystemVersionString,"tests":results,"failed":failed]
     do {try JSONSerialization.data(withJSONObject:report,options:[.prettyPrinted,.sortedKeys]).write(to:evidence.appendingPathComponent("mac-results.json"))}

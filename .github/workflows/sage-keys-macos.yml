@@ -5,6 +5,9 @@ on:
     branches: [main]
     paths:
       - 'macos/**'
+      - '!macos/**/*.md'
+      - '!macos/evidence/**'
+      - 'docs/AUDIO.md'
       - 'src/**'
       - 'assets/**'
       - 'style.css'

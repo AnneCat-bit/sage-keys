@@ -135,6 +135,10 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
             notice="先選取要同步的文字 App";refresh();return
         }
         guard KeyMonitor.safeSession() else {pauseAll("安全輸入或工作階段不明");return}
+        // A modal consent dialog can run a nested event loop.
+        // Disarm before opening it, including when extending the current scope.
+        let prior=allowed.filter{!$0.isTerminated}
+        pauseAll("等待確認")
         let alert=NSAlert()
         alert.messageText="允許「"+(front.localizedName ?? "前景 App")+"」在本次同步？"
         alert.informativeText="只以物理鍵位驅動鍵帽和錄音。系統安全輸入時暫停。部分網站及 App 的密碼欄未啟用安全輸入，輸入敏感資料前請先按暫停。暫停後清除本次允許清單。"
@@ -144,6 +148,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
             pauseAll("未獲授權 · 請見「輸入監控」");return
         }
         guard KeyMonitor.safeSession() else {pauseAll("系統保護中");return}
+        allowed=prior
         if !allowed.contains(front) {allowed.append(front)}
         armed=true;paused=false;notice=nil
         panel.orderFrontRegardless();display.setPaused(false);frontChanged()
@@ -174,7 +179,8 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
     @objc private func quit(){NSApp.terminate(nil)}
     @objc private func login(){
         do {
-            if SMAppService.mainApp.status == .enabled {try SMAppService.mainApp.unregister()}
+            if SMAppService.mainApp.status == .requiresApproval {SMAppService.openSystemSettingsLoginItems()}
+            else if SMAppService.mainApp.status == .enabled {try SMAppService.mainApp.unregister()}
             else {try SMAppService.mainApp.register()}
         } catch {notice="請在系統設定檢查登入項目";refresh()}
     }
@@ -198,19 +204,28 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         _=entry(menu,prefs.bool(forKey:"eco") ? "省電 · 15 FPS（切換至 30）":"標準 · 30 FPS（切換至 15）",#selector(quality))
         _=entry(menu,"俯視",#selector(pose),checked:prefs.bool(forKey:"top"))
         _=entry(menu,"保持置頂",#selector(pin),checked:prefs.bool(forKey:"pinned"))
-        _=entry(menu,"登入時啟動",#selector(login),checked:SMAppService.mainApp.status == .enabled)
+        _=entry(menu,SMAppService.mainApp.status == .requiresApproval ? "登入項目等待系統核准…":"登入時啟動",#selector(login),checked:SMAppService.mainApp.status == .enabled)
         menu.addItem(.separator());_=entry(menu,"退出 Sage Keys",#selector(quit))
     }
     @objc private func openOptions(_ sender:NSButton) {
         let menu=NSMenu();menuNeedsUpdate(menu);menu.popUp(positioning:nil,at:NSPoint(x:0,y:sender.bounds.maxY),in:sender)
     }
-    func applicationWillTerminate(_ notification:Notification) {shutdown()}
-    func shutdown() {
+    func applicationShouldTerminate(_ sender:NSApplication)->NSApplication.TerminateReply {
+        if closing {return .terminateLater}
+        shutdown { DispatchQueue.main.async {sender.reply(toApplicationShouldTerminate:true)} }
+        return .terminateLater
+    }
+    func applicationWillTerminate(_ notification:Notification) {if !closing {shutdown()}}
+    func shutdown(completion:@escaping()->Void = {}) {
         guard !closing else{return};closing=true
-        monitor.stop();allowed.removeAll();demoWork?.cancel()
+        monitor.stop();armed=false;allowed.removeAll();demoWork?.cancel()
         for (center,token) in observed {center.removeObserver(token)};observed.removeAll()
-        panel?.delegate=nil;panel?.orderOut(nil);display?.close()
+        panel?.delegate=nil;panel?.orderOut(nil)
         if let item=item {NSStatusBar.system.removeStatusItem(item)}
-        display=nil;panel=nil;item=nil
+        item=nil
+        display.close { [weak self] in
+            self?.display=nil;self?.panel=nil
+            completion()
+        }
     }
 }
