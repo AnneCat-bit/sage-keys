@@ -60,7 +60,8 @@ export function createFloating({host,button,view,bind,refresh,unavailable,toggle
       // must have a bounded container before the size observer follows it.
       const style=doc.createElement('style');
       const sheet=document.querySelector('link[rel="stylesheet"]').sheet;
-      style.textContent=Array.from(sheet.cssRules,rule=>rule.cssText).join('\n');
+      style.textContent=Array.from(sheet.cssRules).filter(rule=>rule.type!==CSSRule.FONT_FACE_RULE)
+        .map(rule=>rule.cssText).join('\n');
       doc.head.append(style);
       doc.body.className='pip-page';
       doc.body.append(document.querySelector('.symbols').cloneNode(true),template.content.cloneNode(true));
