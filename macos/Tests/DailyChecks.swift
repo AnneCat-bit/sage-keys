@@ -37,7 +37,21 @@ struct DailyChecks {
 
     func focus(_ bundle: String) async throws -> NSRunningApplication {
         guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundle) else {throw Failure(bundle)}
-        let target = try await open(url)
+        func running() -> NSRunningApplication? {
+            NSRunningApplication.runningApplications(withBundleIdentifier: bundle).first { !$0.isTerminated }
+        }
+        let target: NSRunningApplication
+        if let existing = running() {
+            target = existing
+        } else {
+            do {target = try await open(url)}
+            catch {
+                // LS can time out sending a reopen event after the app has already launched.
+                // The check below still requires this precise instance to become frontmost.
+                guard let launched = running() else {throw error}
+                target = launched
+            }
+        }
         _ = target.activate(options: [.activateIgnoringOtherApps])
         try await wait("foreground " + bundle) {NSWorkspace.shared.frontmostApplication == target}
         return target
