@@ -1,0 +1,6 @@
+settings-links (macos-15)	Observe the actual System Settings destination	2026-11-21T15:28:13.4362200Z OS Version 15.8.2 (Build 24H232) existing read-only QA AX access: true
+settings-links (macos-15)	Observe the actual System Settings destination	2026-11-21T15:28:13.4474140Z expected=Privacy & Security dispatch=privacy foreground=com.apple.systempreferences exactPaneVerified=true evidence=AX window title: Privacy & Security
+settings-links (macos-15)	Observe the actual System Settings destination	2026-11-21T15:28:13.4601150Z expected=Input Monitoring dispatch=input foreground=com.apple.systempreferences exactPaneVerified=true evidence=AX window title: Input Monitoring
+settings-links (macos-26)	Observe the actual System Settings destination	2026-11-21T15:28:21.3742070Z OS Version 26.7.2 (Build 25G332) existing read-only QA AX access: true
+settings-links (macos-26)	Observe the actual System Settings destination	2026-11-21T15:28:21.5402960Z expected=Privacy & Security dispatch=privacy foreground=com.apple.systempreferences exactPaneVerified=true evidence=AX window title: Privacy & Security
+settings-links (macos-26)	Observe the actual System Settings destination	2026-11-21T15:28:21.5814520Z expected=Input Monitoring dispatch=input foreground=com.apple.systempreferences exactPaneVerified=true evidence=AX window title: Input Monitoring

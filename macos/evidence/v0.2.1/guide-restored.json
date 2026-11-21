@@ -1,0 +1,12 @@
+{
+  "checks" : [
+    "distinct launch, saved signed intent",
+    "recheck stays disarmed",
+    "manual confirmation saves only calculator",
+    "Finder remains unapproved"
+  ],
+  "endpoint" : "test double, no system event source",
+  "phase" : "guide-restored",
+  "pid" : 14518,
+  "realTCCPreflight" : false
+}

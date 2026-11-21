@@ -1,0 +1,160 @@
+{
+  "failed" : [
+
+  ],
+  "system" : "Version 15.8.2 (Build 24H232)",
+  "tests" : {
+    "foregroundWindow" : {
+      "foreground" : "com.apple.TextEdit",
+      "foregroundPreserved" : true,
+      "sentSystemKeys" : 0,
+      "visible" : true
+    },
+    "frameAndProcessMeasurements" : {
+      "typing15" : {
+        "drawCalls" : 225,
+        "renderedFrames" : 45,
+        "seconds" : 3.5293732916666158,
+        "strokes" : 24
+      },
+      "typing30" : {
+        "drawCalls" : 430,
+        "renderedFrames" : 86,
+        "seconds" : 3.5374355833333766,
+        "strokes" : 24
+      }
+    },
+    "idle" : {
+      "audioState" : "suspended",
+      "draws" : 0,
+      "rafRequests" : 0,
+      "seconds" : 2.2999999999999998
+    },
+    "offlineLaunch" : {
+      "canBecomeKey" : false,
+      "contentSize" : "{400, 250}",
+      "fileURL" : true,
+      "nonactivating" : true
+    },
+    "offlinePolicy" : {
+      "appFetchCount" : 0,
+      "externalProbeBlockedByCSP" : true,
+      "origin" : "bundle file"
+    },
+    "panelAndPause" : {
+      "hiddenDrawDelta" : 0,
+      "hiddenSoundDelta" : 0,
+      "normalAndFloating" : true,
+      "resumed" : true,
+      "simulatedSleepPaused" : true
+    },
+    "permission" : {
+      "preflight" : false,
+      "realTapOpened" : false,
+      "removed" : true,
+      "safeSession" : true,
+      "simulatedDenialBlocked" : true
+    },
+    "physicalState" : "82 unique positions; chord, release, repeat and reset using synthetic inputs",
+    "protectionTransitions" : {
+      "actualSecureEventInputDisarmed" : true,
+      "hideRemovedTap" : true,
+      "restoreKeptOff" : true,
+      "simulatedRevocationAttached" : true,
+      "simulatedRevocationStandby" : true,
+      "trustRetained" : 1
+    },
+    "recordings" : {
+      "brown" : {
+        "duration" : 0.11,
+        "length" : 35856,
+        "mixedPeak" : 0.012236937880516052,
+        "rms" : 0.095745510801707484,
+        "state" : "running"
+      },
+      "rainy" : {
+        "duration" : 0.13900000000000001,
+        "length" : 33552,
+        "mixedPeak" : 0.45703703165054321,
+        "rms" : 0.039170184678600471,
+        "state" : "running"
+      },
+      "topre" : {
+        "duration" : 0.158,
+        "length" : 36000,
+        "mixedPeak" : 0.39304691553115845,
+        "rms" : 0.080638377517869592,
+        "state" : "running"
+      }
+    },
+    "reopen" : {
+      "armedAfterShow" : false,
+      "contexts" : 1,
+      "minimizeThenShow" : true,
+      "pixelsAfterRestore" : 0,
+      "pixelsBeforeClose" : 396,
+      "redCloseThenMenu" : true,
+      "reopenCallbacks" : 1,
+      "samePanel" : true,
+      "samePID" : true
+    },
+    "shutdown" : {
+      "audioClosed" : true,
+      "canvases" : 0,
+      "hostReleased" : true,
+      "webglLost" : true,
+      "webViewReleased" : true
+    },
+    "thirdPartyBrowserIdentity" : {
+      "bundleID" : "com.google.Chrome",
+      "identityAndReloadCheckSeconds" : 0.19731779166670549,
+      "removed" : true,
+      "signer" : "Team EQHXZ8M8AV",
+      "verifiedAndReloaded" : true
+    },
+    "trustAndForeground" : {
+      "adHocProcessRejected" : true,
+      "cancelGrantsNothing" : true,
+      "checkboxDefaultsOff" : true,
+      "cleared" : true,
+      "differentDesignatedRequirementRejected" : true,
+      "pauseStoppedObserversAndTimer" : true,
+      "removedActive" : true,
+      "savedIdentities" : [
+        [
+          "com.apple.TextEdit",
+          "Apple"
+        ],
+        [
+          "com.apple.calculator",
+          "Apple"
+        ]
+      ],
+      "workspaceTransitions" : [
+        "com.apple.TextEdit · 同步中 · 已信任 TextEdit",
+        "com.apple.calculator · 同步中 · 已信任 Calculator",
+        "com.apple.finder · 未允許的 App · Finder",
+        "com.apple.TextEdit · 同步中 · 已信任 TextEdit"
+      ]
+    },
+    "trustedIdleAndStandby" : {
+      "trustedIdle" : [
+        0,
+        0,
+        0
+      ],
+      "untrustedStandby" : [
+        0,
+        0,
+        0
+      ]
+    },
+    "webglAndKeys" : {
+      "contextCount" : 1,
+      "oneKeyPixels" : 326,
+      "restPixels" : 0,
+      "twoKeyPixels" : 2768
+    }
+  },
+  "transitionEndpoint" : "silent test double; no OS events"
+}

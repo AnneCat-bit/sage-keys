@@ -1,0 +1,26 @@
+/Users/runner/work/sage-keys/sage-keys/macos/build/install-check/Sage Keys.app: rejected
+assessment exit 3
+Executable=/Users/runner/work/sage-keys/sage-keys/macos/build/install-check/Sage Keys.app/Contents/MacOS/SageKeys
+Identifier=io.github.annecat-bit.sagekeys
+Format=app bundle with Mach-O thin (arm64)
+CodeDirectory v=20500 size=3167 flags=0x10002(adhoc,runtime) hashes=92+3 location=embedded
+VersionPlatform=1
+VersionMin=851968
+VersionSDK=984320
+Hash type=sha256 size=32
+CandidateCDHash sha256=b7656eeb2a6f5ee2bf4c7eeb18aaced7325780e9
+CandidateCDHashFull sha256=b7656eeb2a6f5ee2bf4c7eeb18aaced7325780e9d8c11e173a23401257fa8ef7
+Hash choices=sha256
+CMSDigest=b7656eeb2a6f5ee2bf4c7eeb18aaced7325780e9d8c11e173a23401257fa8ef7
+CMSDigestType=2
+Executable Segment base=0
+Executable Segment limit=180224
+Executable Segment flags=0x1
+Page size=4096
+CDHash=b7656eeb2a6f5ee2bf4c7eeb18aaced7325780e9
+Signature=adhoc
+Info.plist entries=12
+TeamIdentifier=not set
+Runtime Version=15.5.0
+Sealed Resources version=2 rules=13 files=14
+Internal requirements count=0 size=12

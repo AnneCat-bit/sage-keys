@@ -1,10 +1,10 @@
 # Sage Keys for Mac
 
-Sage 75 是一個 Apple Silicon 原生選單列桌寵，支援 macOS 13 或更新版本。以 AppKit 非啟用式小窗搭配系統 WKWebView，預設內容區 400 × 250。模型、字型與三組真實錄音均內置，可在離線時使用。[v0.2 版本紀錄、測試與效能](TESTING-v0.2.md) · [素材與授權](ASSETS.md) · [網頁工作室](https://annecat-bit.github.io/sage-keys/)
+Sage 75 是一個 Apple Silicon 原生選單列桌寵，支援 macOS 13 或更新版本。以 AppKit 非啟用式小窗搭配系統 WKWebView，預設內容區 400 × 250。模型、字型與三組真實錄音均內置，可在離線時使用。[v0.2.1 授權導覽與驗收](PERMISSIONS-v0.2.1.md) · [v0.2 效能紀錄](TESTING-v0.2.md) · [素材與授權](ASSETS.md) · [網頁工作室](https://annecat-bit.github.io/sage-keys/)
 
 ## 下載及安裝個人測試版
 
-**[下載已驗證的 Apple Silicon Artifact](https://github.com/AnneCat-bit/sage-keys/actions/runs/44916100751/artifacts/14711602046)** · [對應的成功編譯](https://github.com/AnneCat-bit/sage-keys/actions/runs/44916100751) · [內層 ZIP 的 SHA-256](evidence/v0.2/SHA256.txt)
+**[下載已驗證的 Apple Silicon Artifact](https://github.com/AnneCat-bit/sage-keys/actions/runs/44919307464/artifacts/14713056452)** · [對應的成功編譯](https://github.com/AnneCat-bit/sage-keys/actions/runs/44919307464) · [內層 ZIP 的 SHA-256](evidence/v0.2.1/SHA256.txt)
 
 1. **更新前先從舊版的選單列鍵盤圖示選「退出 Sage Keys」，等圖示消失。** 紅色關閉鍵只會隱藏視窗。
 2. 在已登入 GitHub 的瀏覽器開啟上方已驗證的編譯，選 **Artifacts → Sage-Keys-arm64-personal-test**。下載外層 ZIP 後，在 Finder 解壓縮，裡面有 `Sage-Keys-arm64.zip` 與 `SHA256.txt`。再解開前者，將 **Sage Keys.app** 拖入「應用程式」，更新時選「取代」。
@@ -21,7 +21,7 @@ Actions Artifact 保留 30 天。到期後可在此 repository 的 **Actions →
 - 已有信任清單後，每次啟動仍顯示「同步已關閉」。手動按「同步」後，桌寵才會跟隨已批准的前景 App。未批准的 App 會顯示「未允許」並卸下監測。回到已信任 App 可在同一次同步中繼續。點「暫停」會清除本次允許和所有按住鍵位，保留你選擇記住的 App。
 - 在「管理已信任 App」選名稱，可檢視 Bundle ID、簽署者、移除此 App，或在清單底部清空全部。移除目前目標會立即停止對它的同步。若 App 更換簽署者或不再符合原來的簽署要求，需要再次明確批准。[Apple 程式碼簽署身分說明](https://developer.apple.com/documentation/technotes/tn3127-inside-code-signing-requirements)
 - **信任 Chrome 會涵蓋整個瀏覽器及其所有網站。** 桌寵不檢查網址或文字欄。系統啟用 Secure Event Input 時會停止同步，但並非每個密碼欄都會啟用它。輸入敏感資料前請先暫停。
-- macOS 首次可能詢問「輸入監控／輸入監察」。更新後若出現未獲授權，先在「系統設定 → 私隱與保安 → 輸入監控」核對「應用程式」中的新版。若舊項目已失效，可在該頁移除舊項目、以「＋」選取新版，依提示退出再開，然後再手動按「同步」。Finder 更新後是否沿用權限由該 Mac 的 TCC 決定。[Apple 輸入監控說明](https://support.apple.com/zh-hk/guide/mac-help/mchl4cedafb6/mac)
+- 遇到輸入監察權限不足，可直接在 Sage Keys 按「打開輸入監察設定」。在系統核准 Sage Keys 後，回來按「重新檢查權限」及「確認並開始本次同步」。若系統要求退出，導覽可保留本次選擇，下次打開再確認。[授權步驟與圖示](PERMISSIONS-v0.2.1.md)
 - 按紅色關閉鍵、縮小、隱藏、睡眠、鎖定、撤銷權限或退出，都會停用同步。要找回小窗，可從 Finder 雙擊同一份 App，或在選單列選「顯示桌寵」。顯示後先維持關閉同步。要真正結束程序，選「退出 Sage Keys」。登入時啟動由你自行選擇，預設關閉。
 
 ## 離線與私隱實作

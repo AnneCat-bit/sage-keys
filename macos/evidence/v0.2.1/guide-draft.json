@@ -1,0 +1,17 @@
+{
+  "checks" : [
+    "first grant needs manual start",
+    "decline keeps target out of trust",
+    "later retains draft",
+    "recheck issues no request",
+    "status and fallback branches",
+    "Settings foreground from actual guide button",
+    "already granted skipped OS request",
+    "buttons inside window"
+  ],
+  "endpoint" : "test double, no system event source",
+  "phase" : "guide-draft",
+  "pid" : 14508,
+  "realTCCPreflight" : false,
+  "size" : "{460, 392}"
+}
