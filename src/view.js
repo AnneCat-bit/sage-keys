@@ -27,12 +27,14 @@ function makeFlat(host) {
 }
 
 async function makeScene(host, onLost) {
+  const canvas = document.createElement('canvas');
+  const options = {alpha:true, antialias:true, powerPreference:'low-power', stencil:false};
+  const context = canvas.getContext('webgl2',options) || canvas.getContext('webgl',options);
+  if (!context) throw Error('WebGL unavailable');
   const [THREE, { createKeyboard }] = await Promise.all([
     import('../assets/three.module.min.js'), import('./model.js')
   ]);
-  const renderer = new THREE.WebGLRenderer({
-    alpha: true, antialias: true, powerPreference: 'low-power', stencil: false
-  });
+  const renderer = new THREE.WebGLRenderer({canvas,context,...options});
   const scene = new THREE.Scene();
   const camera = new THREE.OrthographicCamera(-10,10,5,-5,.1,100);
   scene.add(new THREE.HemisphereLight(0xfffefa, 0xb2bbba, 1.70));

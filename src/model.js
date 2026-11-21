@@ -7,8 +7,8 @@ const deckHeight = .69;
 const deckTilt = .035;
 const travel = .18;
 const colors = {
-  ivory: '#eeeede', sage: '#a6b89d', mint: '#c4d2b4',
-  forest: '#536e5d', evergreen: '#789681'
+  ivory: '#eaece2', sage: '#9eb2a1', mint: '#bfceb9',
+  forest: '#4d6858', evergreen: '#789381'
 };
 const linearColors = new Map();
 
@@ -87,7 +87,7 @@ function lid(batch, points, cx, cz, y, tilt, color, dish = 0, uv) {
   const center = batch.vertex(cx, y - dish, cz, 0, 1, tilt, color, 1, uv?.(cx, cz));
   const start = batch.size;
   for (const p of points) {
-    batch.vertex(p.x, p.y, p.z, -dish*p.nx, 1, tilt - dish*p.nz, color, 1, uv?.(p.x,p.z));
+    batch.vertex(p.x, p.y, p.z, -dish*3*p.nx, 1, tilt - dish*3*p.nz, color, 1, uv?.(p.x,p.z));
   }
   for (let i = 0; i < points.length; i++) {
     batch.indices.push(center, start + (i+1) % points.length, start + i);
@@ -99,12 +99,12 @@ function housing(batch) {
   const specs = [
     [width-.48, depth-.48, .37, .065, 0, '#63746a'],
     [width-.18, depth-.18, .38, .16, .012, '#94a39a'],
-    [width-.08, depth-.08, .36, .245, .022, '#a9b7ab'],
+    [width-.08, depth-.08, .36, .245, .022, '#a8b6b1'],
     [width-.085, depth-.085, .36, .265, .022, '#64766d'],
-    [width-.06, depth-.06, .36, .29, .022, '#e5e8db'],
-    [width, depth, .37, .36, deckTilt, '#aab8ab'],
-    [width, depth, .37, deckHeight-.068, deckTilt, '#9eafa1'],
-    [width-.095, depth-.095, .33, deckHeight, deckTilt, '#d2dacf'],
+    [width-.06, depth-.06, .36, .29, .022, '#e5e9e4'],
+    [width, depth, .37, .36, deckTilt, '#aab7b1'],
+    [width, depth, .37, deckHeight-.068, deckTilt, '#a0b0a8'],
+    [width-.095, depth-.095, .33, deckHeight, deckTilt, '#d5ded6'],
     [width-.18, depth-.18, .295, deckHeight+.012, deckTilt, '#bcc9b9']
   ];
   let previous;
@@ -113,15 +113,16 @@ function housing(batch) {
     if (previous) band(batch, previous, points, c, tilt);
     previous = points;
   }
-  lid(batch, previous, 0, 0, deckHeight+.012, deckTilt, '#b0bfad');
+  lid(batch, previous, 0, 0, deckHeight+.012, deckTilt, '#b3c0b6');
 }
 
 function sprig(ctx, x, y) {
   ctx.save();
   ctx.translate(x, y);
+  ctx.scale(1.28,1.28);
   ctx.lineCap = 'round';
-  ctx.strokeStyle = '#526c56';
-  ctx.fillStyle = '#68846a';
+  ctx.strokeStyle = '#455e4a';
+  ctx.fillStyle = '#526c55';
   ctx.lineWidth = 1.9;
   ctx.beginPath();
   ctx.moveTo(-19, 9); ctx.bezierCurveTo(-9, 10, 8, 0, 19, -12); ctx.stroke();
@@ -148,7 +149,7 @@ function makeInk() {
     ctx.fillStyle = key.tone === 'forest' ? '#f3f1d9' : '#344438';
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'center';
-    const face = n => `600 ${n}px Arial, "DejaVu Sans", sans-serif`;
+    const face = n => `${n >= 28 ? 500 : 600} ${n}px Arial, "DejaVu Sans", sans-serif`;
     if (key.code === 'Space') {
       sprig(ctx, x + w * .83, y + h * .53);
     } else if (key.upper && (key.w > 1.55 || /Left|Right/.test(key.code) && !key.code.startsWith('Bracket'))) {
@@ -190,14 +191,15 @@ function keyHousing(batch, k, deck) {
 }
 
 function cap(body, ink, key, tile, deck) {
-  const {x,z,w,row} = key, color = colors[key.tone];
+  const {x,z,w,row} = key;
+  const color = key.code === 'Space' ? '#a1b69f' : colors[key.tone];
   const tilt = [.08,.09,.055,.015,-.025,-.035][row];
   const y = deck + [.63,.61,.57,.54,.535,.54][row];
   // Flared skirt, short vertical base, tapered shoulders, and a softened rim.
   const specs = [
-    [w-.088,.908,.079,deck+.13,0,.72],
-    [w-.052,.946,.095,deck+.165,0,.83],
-    [w-.066,.933,.099,deck+.245,-.003,.87],
+    [w-.088,.908,.079,deck+.13,0,.53],
+    [w-.052,.946,.095,deck+.165,0,.69],
+    [w-.066,.933,.099,deck+.245,-.003,.84],
     [w-.207,.786,.119,y-.065,-.026,.97],
     [w-.256,.730,.121,y-.018,-.031,1],
     [w-.302,.691,.106,y,-.032,1]
@@ -210,13 +212,21 @@ function cap(body, ink, key, tile, deck) {
     previous = points;
   }
   const topZ = z-.032;
-  lid(body,previous,x,topZ,y,tilt,color,.009);
+  const dish = key.code === 'Space' ? 0 : .024;
+  lid(body,previous,x,topZ,y,tilt,color,dish);
+  if (key.code === 'KeyF' || key.code === 'KeyJ') {
+    const barZ = topZ + .245, barY = y - tilt * .245 - dish * .28;
+    const foot = rectangle(.18,.036,.014,barY,x,barZ,tilt,2);
+    const top = rectangle(.154,.022,.009,barY+.012,x,barZ,tilt,2);
+    band(body,foot,top,color,tilt,.83,1);
+    lid(body,top,x,barZ,barY+.012,tilt,color);
+  }
   const {x:tx,y:ty,w:tw,h:th} = tile;
   const uv = (px,pz) => [
     (tx + ((px-x)/(w-.302)+.5)*tw) / 1024,
     1 - (ty + ((pz-topZ)/.691+.5)*th) / 1024
   ];
-  lid(ink,previous.map(p=>({...p,y:p.y+.002})),x,topZ,y+.002,tilt,'#ffffff',.009,uv);
+  lid(ink,previous.map(p=>({...p,y:p.y+.002})),x,topZ,y+.002,tilt,'#ffffff',dish,uv);
 }
 
 // Turned-aluminium details share a batch, including the dial's actual knurls.
