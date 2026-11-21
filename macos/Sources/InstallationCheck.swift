@@ -44,6 +44,8 @@ struct InstallationCheck {
     let diskMatchesRunning: Bool?
     let previousHashChanged: Bool
 
+    // CS_ADHOC bit in the CodeDirectory flags returned by Security.framework.
+    private static let adHocFlag: UInt32 = 0x0002
     private static func canonical(_ url: URL) -> URL {url.resolvingSymlinksInPath().standardizedFileURL}
     private static func hash(_ code: SecStaticCode) -> String? {
         var info: CFDictionary?
@@ -91,7 +93,7 @@ struct InstallationCheck {
                 if SecCodeCopySigningInformation(code,SecCSFlags(rawValue:kSecCSSigningInformation),&info) == errSecSuccess,
                    let props = info as? [String:Any] {
                     let flags = (props[kSecCodeInfoFlags as String] as? NSNumber)?.uint32Value ?? 0
-                    if flags & UInt32(kSecCodeSignatureAdhoc) != 0 {identity = "ad-hoc · 無開發者團隊簽署"}
+                    if flags & Self.adHocFlag != 0 {identity = "ad-hoc · 無開發者團隊簽署"}
                     else {identity = props[kSecCodeInfoTeamIdentifier as String] as? String ?? "沒有 Team ID"}
                 }
                 if SecCodeCopyDesignatedRequirement(code,[],&dr) == errSecSuccess, let dr = dr {
