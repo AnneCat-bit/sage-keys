@@ -50,6 +50,7 @@ final class PermissionProgress {
 
     func statusText(_ status: ListenStatus) -> String {
         if status == .granted {observedGrant();return "已取得輸入監察權限"}
+        if status == .inconsistent {return "系統權限回報不一致，目前無法同步。請重新檢查，必要時退出再開。"}
         if let past = defaults.string(forKey: "inputGuide.lastGrantedBuild") {
             return past == build ? "之前有權限，目前已失效。請重新授權。" : "更新後，新版本目前沒有輸入監察權限。"
         }

@@ -47,3 +47,13 @@ for phase in ["quit-active", "restart-off"]:
 assert launches[0]["pid"] != launches[1]["pid"]
 assert launches[0]["activeAtQuit"] and not launches[1]["activeAtQuit"]
 print("PASS quit and restart", launches)
+
+guide_pids = set()
+for phase in ["guide-draft", "guide-restored", "guide-mismatch"]:
+    subprocess.run(command[:3] + [str(app), "--args", str(evidence), str(probe), phase], check=True, timeout=50)
+    if (evidence/(phase+".error")).exists():
+        raise RuntimeError((evidence/(phase+".error")).read_text())
+    result = json.loads((evidence/(phase+".json")).read_text())
+    guide_pids.add(result["pid"])
+    print("PASS", phase, result, flush=True)
+assert len(guide_pids) == 3

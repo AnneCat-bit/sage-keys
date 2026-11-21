@@ -5,6 +5,7 @@ struct Failure: Error, CustomStringConvertible { let description:String;init(_ s
 func require(_ yes:Bool,_ info:String)throws {if !yes {throw Failure(info)}}
 let app=NSApplication.shared
 let endpoint: DenialFixture = {
+    if CommandLine.arguments.dropFirst(3).first?.hasPrefix("guide-") == true {return SilentEndpoint()}
     if KeyMonitor.authorized {return KeyMonitor()}
     return SilentEndpoint()
 }()
@@ -257,7 +258,11 @@ app.delegate=delegate
     } catch {print(error);exit(1)}
 }
 DispatchQueue.main.async {Task {@MainActor in
-    if let phase = CommandLine.arguments.dropFirst(3).first {await coldLaunch(phase)}
+    if let phase = CommandLine.arguments.dropFirst(3).first, phase.hasPrefix("guide-"), let silent = endpoint as? SilentEndpoint {
+        do {try await GuideChecks(daily:DailyChecks(pet:delegate,endpoint:endpoint),endpoint:silent,evidence:evidence).run(phase)}
+        catch {try? String(describing:error).write(to:evidence.appendingPathComponent(phase+".error"),atomically:true,encoding:.utf8);exit(1)}
+    }
+    else if let phase = CommandLine.arguments.dropFirst(3).first {await coldLaunch(phase)}
     else {
         try String(getpid()).write(to:evidence.appendingPathComponent("qa-pid"),atomically:true,encoding:.utf8)
         await runChecks()

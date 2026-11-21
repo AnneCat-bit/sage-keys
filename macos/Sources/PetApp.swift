@@ -239,7 +239,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         item.button?.toolTip="Sage Keys · "+label.stringValue
     }
     private func applySettings() {
-        panel.level=prefs.bool(forKey:"pinned") ? .floating:.normal
+        panel.level = prefs.bool(forKey:"pinned") && guide?.window?.isVisible != true ? .floating : .normal
         display.configure(muted:prefs.bool(forKey:"muted"),eco:prefs.bool(forKey:"eco"),top:prefs.bool(forKey:"top"),tone:prefs.string(forKey:"tone") ?? "rainy")
         refresh()
     }
@@ -262,7 +262,12 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         oneTimeTarget = nil
         oneTimeSignature = nil
         needsPermissionHelp = false
+        dismissGuide()
+    }
+
+    private func dismissGuide() {
         guide?.dismiss()
+        panel.level = prefs.bool(forKey:"pinned") ? .floating : .normal
     }
 
     @objc private func toggleSync() {
@@ -289,8 +294,11 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
             view.later = { [weak self] in
                 guard let self = self else {return}
                 self.progress.resumeNextLaunch(false)
-                if self.progress.pending == .help {self.clearDraft()}
-                self.guide?.dismiss()
+                if self.progress.pending == .help || (self.progress.pending == .once && self.oneTimeTarget?.isTerminated != false) {
+                    self.clearDraft()
+                } else {
+                    self.dismissGuide()
+                }
                 self.refresh()
             }
             view.quitToApply = { [weak self] in
@@ -302,6 +310,8 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
             guide = view
         }
         updateGuide()
+        // Give System Settings and the guide an unobstructed window while the user acts.
+        panel.level = .normal
         guide?.present()
     }
 
@@ -472,7 +482,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         if !armed {paused=false;notice=nil;display.setPaused(false)}
         refresh()
     }
-    @objc private func hide() {pauseAll("已隱藏");guide?.dismiss();panel.orderOut(nil)}
+    @objc private func hide() {pauseAll("已隱藏");dismissGuide();panel.orderOut(nil)}
     func windowShouldClose(_ sender:NSWindow)->Bool {hide();return false}
     func windowDidMiniaturize(_ notification:Notification){pauseAll("已縮小")}
     func windowDidDeminiaturize(_ notification:Notification) {show()}
