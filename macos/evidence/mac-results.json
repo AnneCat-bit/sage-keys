@@ -1,0 +1,96 @@
+{
+  "failed" : [
+
+  ],
+  "system" : "Version 15.8.2 (Build 24H232)",
+  "tests" : {
+    "foregroundWindow" : {
+      "foreground" : "com.apple.TextEdit",
+      "foregroundPreserved" : true,
+      "sentSystemKeys" : 0,
+      "visible" : true
+    },
+    "frameAndProcessMeasurements" : {
+      "typing15" : {
+        "drawCalls" : 480,
+        "renderedFrames" : 96,
+        "seconds" : 10.548711666666634,
+        "strokes" : 24
+      },
+      "typing30" : {
+        "drawCalls" : 605,
+        "renderedFrames" : 121,
+        "seconds" : 10.506959541666674,
+        "strokes" : 24
+      }
+    },
+    "idle" : {
+      "audioState" : "interrupted",
+      "draws" : 0,
+      "rafRequests" : 0,
+      "seconds" : 2.2999999999999998
+    },
+    "offlineLaunch" : {
+      "canBecomeKey" : false,
+      "contentSize" : "{400, 250}",
+      "fileURL" : true,
+      "nonactivating" : true
+    },
+    "offlinePolicy" : {
+      "appFetchCount" : 0,
+      "externalProbeBlockedByCSP" : true,
+      "origin" : "bundle file"
+    },
+    "panelAndPause" : {
+      "hiddenDrawDelta" : 0,
+      "hiddenSoundDelta" : 0,
+      "normalAndFloating" : true,
+      "resumed" : true,
+      "simulatedSleepPaused" : true
+    },
+    "permission" : {
+      "preflight" : true,
+      "realTapOpened" : true,
+      "removed" : true,
+      "safeSession" : true,
+      "simulatedDenialBlocked" : true
+    },
+    "physicalState" : "82 unique positions; chord, release, repeat and reset using synthetic inputs",
+    "recordings" : {
+      "brown" : {
+        "duration" : 0.11,
+        "length" : 35856,
+        "mixedPeak" : 0.30797466635704041,
+        "rms" : 0.095745510801707484,
+        "state" : "running"
+      },
+      "rainy" : {
+        "duration" : 0.13900000000000001,
+        "length" : 33552,
+        "mixedPeak" : 0.45703703165054321,
+        "rms" : 0.039170184678600471,
+        "state" : "running"
+      },
+      "topre" : {
+        "duration" : 0.158,
+        "length" : 36000,
+        "mixedPeak" : 0.41933643817901611,
+        "rms" : 0.080638377517869592,
+        "state" : "running"
+      }
+    },
+    "shutdown" : {
+      "audioClosed" : true,
+      "canvases" : 0,
+      "hostReleased" : true,
+      "webglLost" : true,
+      "webViewReleased" : true
+    },
+    "webglAndKeys" : {
+      "contextCount" : 1,
+      "oneKeyPixels" : 326,
+      "restPixels" : 0,
+      "twoKeyPixels" : 2768
+    }
+  }
+}

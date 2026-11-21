@@ -1,0 +1,21 @@
+apple-silicon	Set up job	2026-11-21T14:10:22.1795820Z Image: macos-15-arm64
+apple-silicon	Record toolchain and build offline bundle	2026-11-21T14:10:26.2672260Z ProductVersion:		15.8.2
+apple-silicon	Record toolchain and build offline bundle	2026-11-21T14:10:26.2673070Z BuildVersion:		24H232
+apple-silicon	Record toolchain and build offline bundle	2026-11-21T14:10:26.6331630Z Xcode 16.4
+apple-silicon	Record toolchain and build offline bundle	2026-11-21T14:10:29.9741660Z Apple Swift version 6.1.2 (swiftlang-6.1.2.1.2 clang-1700.0.13.5)
+apple-silicon	Record toolchain and build offline bundle	2026-11-21T14:10:50.3080500Z macos/build/Sage Keys.app/Contents/MacOS/SageKeys: Mach-O 64-bit executable arm64
+apple-silicon	Run actions/upload-artifact@v4	2026-11-21T14:10:52.9201170Z Artifact Sage-Keys-arm64-personal-test.zip successfully finalized. Artifact ID 14710202421
+apple-silicon	Run actions/upload-artifact@v4	2026-11-21T14:10:52.9268230Z Artifact Sage-Keys-arm64-personal-test has been successfully uploaded! Final size is 645949 bytes. Artifact ID is 14710202421
+apple-silicon	Run native state and WKWebView checks	2026-11-21T14:11:49.4211170Z PASS physicalState
+apple-silicon	Run native state and WKWebView checks	2026-11-21T14:11:49.4255830Z PASS permission
+apple-silicon	Run native state and WKWebView checks	2026-11-21T14:11:49.4286850Z PASS offlineLaunch
+apple-silicon	Run native state and WKWebView checks	2026-11-21T14:11:49.4289950Z PASS webglAndKeys
+apple-silicon	Run native state and WKWebView checks	2026-11-21T14:11:49.4299420Z PASS recordings
+apple-silicon	Run native state and WKWebView checks	2026-11-21T14:11:49.4302480Z PASS panelAndPause
+apple-silicon	Run native state and WKWebView checks	2026-11-21T14:11:49.4308640Z PASS foregroundWindow
+apple-silicon	Run native state and WKWebView checks	2026-11-21T14:11:49.4309610Z PASS idle
+apple-silicon	Run native state and WKWebView checks	2026-11-21T14:11:49.4310680Z PASS frameAndProcessMeasurements
+apple-silicon	Run native state and WKWebView checks	2026-11-21T14:11:49.4311820Z PASS offlinePolicy
+apple-silicon	Run native state and WKWebView checks	2026-11-21T14:11:49.4312730Z PASS shutdown
+apple-silicon	Run actions/upload-artifact@v4	2026-11-21T14:11:51.6177380Z Artifact Sage-Keys-mac-test-evidence.zip successfully finalized. Artifact ID 14710087844
+apple-silicon	Run actions/upload-artifact@v4	2026-11-21T14:11:51.6179030Z Artifact Sage-Keys-mac-test-evidence has been successfully uploaded! Final size is 72056 bytes. Artifact ID is 14710087844

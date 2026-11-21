@@ -2,7 +2,7 @@
 
 Sage Keys 是免費的 3D 機械鍵盤打字工作室。瀏覽器會即時建立一把 82 鍵的 Sage 75，並以錄製的機械鍵盤聲回應敲擊。桌面版 Chrome 可把同一把鍵盤移到置頂小窗。打開網站即可使用。
 
-**[開啟 Sage Keys](https://annecat-bit.github.io/sage-keys/)** · [最新互動與效能實測](docs/INTERACTION-REPAIR.md) · [原版回歸報告](docs/TESTING.md) · [完整錄音紀錄](docs/AUDIO.md)
+**[開啟 Sage Keys](https://annecat-bit.github.io/sage-keys/)** · [Mac 個人測試版](macos/README.md) · [最新互動與效能實測](docs/INTERACTION-REPAIR.md) · [原版回歸報告](docs/TESTING.md) · [完整錄音紀錄](docs/AUDIO.md)
 
 ![Sage Keys 正式網站主畫面](docs/studio.png)
 
@@ -50,6 +50,6 @@ Sage Keys 是免費的 3D 機械鍵盤打字工作室。瀏覽器會即時建立
 
 GitHub Pages 從 `main` 的 `/(root)` 發布，沒有建置步驟。網站使用相對路徑，在專案子路徑和重新整理後皆可載入。Three.js 的 MIT 授權位於 [assets/THREE-LICENSE.txt](assets/THREE-LICENSE.txt)，字型授權隨 [assets/fonts](assets/fonts) 提供。
 
-## 未來 macOS 原生桌寵
+## Sage Keys for Mac
 
-SwiftUI、WKWebView、非啟用式浮動面板，以及自選的跨 App 物理鍵位回饋，屬獨立桌面版研究方向。權限、私隱、離線架構、功耗和實機驗證條件詳見[可行性評估](docs/MACOS-FEASIBILITY.md)。
+Apple Silicon 個人測試版使用 AppKit 非啟用式浮窗與本機 WKWebView，可離線運作。使用者可在 macOS 授權後，逐一允許本次要同步的前景 App。下載、單一 App 核准方式、實測數據與限制見原生版文件。[Mac 下載及安裝](macos/README.md) · [macOS 驗收紀錄](macos/TESTING.md)

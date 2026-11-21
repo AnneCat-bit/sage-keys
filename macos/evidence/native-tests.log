@@ -1,0 +1,11 @@
+PASS physicalState
+PASS permission
+PASS offlineLaunch
+PASS webglAndKeys
+PASS recordings
+PASS panelAndPause
+PASS foregroundWindow
+PASS idle
+PASS frameAndProcessMeasurements
+PASS offlinePolicy
+PASS shutdown
