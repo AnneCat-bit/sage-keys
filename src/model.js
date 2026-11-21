@@ -332,6 +332,9 @@ export function createKeyboard() {
   const capMesh=caps.mesh(plastic,true), inkMesh=legends.mesh(print,true);
   const capPosition=capMesh.geometry.attributes.position, inkPosition=inkMesh.geometry.attributes.position;
   const capRest=capPosition.array.slice(), inkRest=inkPosition.array.slice();
+  const capColor=capMesh.geometry.attributes.color;
+  capColor.setUsage(THREE.DynamicDrawUsage);
+  const restingColor=capColor.array.slice();
   inkMesh.renderOrder=1;
   group.add(shadow(),shell.mesh(shellMat),fixed.mesh(plastic),capMesh,inkMesh);
 
@@ -348,6 +351,17 @@ export function createKeyboard() {
     key.depth=val;
     move(capPosition,capRest,key.capStart,key.capEnd,val);
     move(inkPosition,inkRest,key.inkStart,key.inkEnd,val);
+    // Vertical travel projects to almost zero from above. Shade the same
+    // cap in linear light, continuously following its mechanical travel.
+    const start=key.capStart*3, end=key.capEnd*3;
+    const red=1-.36*val, green=1-.28*val, blue=1-.35*val;
+    for (let i=start;i<end;i+=3) {
+      capColor.array[i]=restingColor[i]*red;
+      capColor.array[i+1]=restingColor[i+1]*green;
+      capColor.array[i+2]=restingColor[i+2]*blue;
+    }
+    capColor.addUpdateRange(start,end-start);
+    capColor.needsUpdate=true;
   }
   function dispose() {
     const materials=new Set();

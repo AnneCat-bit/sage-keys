@@ -20,7 +20,7 @@ function hasFocus() {
   const mini=floating?.window?.document;
   return (!document.hidden && document.hasFocus()) || !!(mini && !mini.hidden && mini.hasFocus());
 }
-const sound = createSound(prefs, message => { byId('audio-status').textContent = message; },hasFocus);
+const sound = createSound(prefs, message => { byId('audio-status').textContent = message; });
 const view = createView(host,prefs.quality,state=>{
   byId('model-mode').textContent = state.flat ? '2D VIEW' : 'MODEL VIEW';
   host.setAttribute('aria-label', state.flat ? 'Sage 75 二維省資源鍵盤' : '可旋轉的 Sage 75 立體鍵盤');
@@ -47,11 +47,13 @@ function syncControls() {
   soundButton.querySelector('span').textContent = audible ? '聲音開啟' : '已靜音';
 }
 syncControls();
-soundButton.onclick = ()=>{
+function toggleMute() {
   if (prefs.volume === 0) { prefs.volume=55; prefs.muted=false; }
   else prefs.muted=!prefs.muted;
   sound.sync(); syncControls(); save();
-};
+  if (!prefs.muted) sound.prepare();
+}
+soundButton.onclick=toggleMute;
 byId('volume').oninput = event=>{
   prefs.volume=event.target.valueAsNumber;
   if (prefs.volume>0) prefs.muted=false;
@@ -59,15 +61,21 @@ byId('volume').oninput = event=>{
 };
 byId('tone').onchange = event=>{
   sound.halt(); prefs.tone=event.target.value;
-  sound.sync(); save(); sound.play('KeyA',true);
+  sound.sync(); save(); sound.play('KeyA');
 };
 byId('audition').onclick = ()=>{
   if (prefs.muted || prefs.volume===0) {
     byId('audio-status').textContent='請開啟聲音並調高音量後試聽。'; return;
   }
-  sound.play('KeyA',true);
+  sound.play('KeyA');
 };
-byId('quality').onchange = event=>{ prefs.quality=event.target.value; view.setQuality(prefs.quality); save(); };
+function setQuality(value) {
+  prefs.quality=value;
+  view.setQuality(value);
+  syncControls();
+  save();
+}
+byId('quality').onchange=event=>setQuality(event.target.value);
 byId('angle').onclick = ()=>view.selectView('angle');
 byId('top').onclick = ()=>view.selectView('top');
 byId('zoom-in').onclick = ()=>view.adjustZoom(.1);
@@ -76,12 +84,20 @@ byId('reset').onclick = ()=>view.reset();
 
 // The browser owns text entry, composition and all shortcuts. Only physical codes
 // are routed to the model. No code copies a keystroke into the textarea.
+let inputDocument;
 function onDown(event) {
   const doc=event.currentTarget;
-  if ((doc===document && info.open) || !doc.hasFocus() || doc.hidden || event.repeat) return;
+  if (!event.isTrusted || doc.hidden || (doc===document && info.open) || event.repeat) return;
+  // A key delivered by the browser is current evidence of input ownership,
+  // even when a focus notification from the other window arrived late.
+  cancelFocusCheck();
+  if (inputDocument && inputDocument!==doc) view.releaseAll();
+  inputDocument=doc;
+  view.setActive(true);
   if (view.key(event.code,true)) sound.play(event.code);
 }
 function onUp(event) {
+  if (!event.isTrusted) return;
   view.key(event.code,false);
   if (event.code === 'MetaLeft' || event.code === 'MetaRight') view.releaseChord();
 }
@@ -89,27 +105,46 @@ const ime = byId('ime');
 writing.addEventListener('compositionstart',()=>{ime.textContent='正在選字…';});
 writing.addEventListener('compositionend',()=>{ime.textContent='支援中文輸入法';});
 writing.addEventListener('blur',()=>{ime.textContent='支援中文輸入法';});
+let focusCheck;
+function cancelFocusCheck() {
+  if (focusCheck) focusCheck.win.clearTimeout(focusCheck.id);
+  focusCheck=null;
+}
 function syncFocus() {
+  cancelFocusCheck();
   const active = hasFocus();
   view.setActive(active);
   if (!active) sound.halt();
 }
 function bindWindow(win) {
   const doc=win.document;
-  const listeners=[[win,'blur',syncFocus],[win,'focus',syncFocus],[doc,'visibilitychange',syncFocus],
+  function onBlur() {
+    if (inputDocument===doc) view.releaseAll();
+    cancelFocusCheck();
+    // blur can precede the other Sage window's focus. Reconcile the pair
+    // after that handoff, using the visible window's event loop.
+    const clock=floating?.window || window;
+    focusCheck={win:clock,id:clock.setTimeout(syncFocus,0)};
+  }
+  function onVisibility() {
+    if (doc===host.ownerDocument) view.refreshSurface();
+    if (doc.hidden) onBlur(); else syncFocus();
+  }
+  const listeners=[[win,'blur',onBlur],[win,'focus',syncFocus],[doc,'visibilitychange',onVisibility],
     [doc,'keydown',onDown],[doc,'keyup',onUp]];
   for (const [target,type,handler] of listeners) target.addEventListener(type,handler);
-  return ()=>{for (const [target,type,handler] of listeners) target.removeEventListener(type,handler);};
+  return ()=>{
+    for (const [target,type,handler] of listeners) target.removeEventListener(type,handler);
+    if (inputDocument===doc) inputDocument=null;
+  };
 }
 bindWindow(window);
+writing.addEventListener('pointerdown',sound.prepare);
 floating=createFloating({
   host,button:byId('float-mode'),view,bind:bindWindow,
   refresh(){syncControls();syncFocus();},
-  toggleMute(){soundButton.click();},
-  toggleEco(){
-    prefs.quality=prefs.quality==='eco' ? 'standard' : 'eco';
-    view.setQuality(prefs.quality);syncControls();save();
-  },
+  prepare:sound.prepare, toggleMute,
+  toggleEco(){setQuality(prefs.quality==='eco' ? 'standard' : 'eco');},
   unavailable(){showInfo('float-help','懸浮模式暫不可用');}
 });
 window.addEventListener('pagehide',()=>{

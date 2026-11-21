@@ -1,6 +1,6 @@
 // A Document PiP window adopts the existing viewport. Its document has no app
 // entry point, renderer or audio context of its own.
-export function createFloating({host,button,view,bind,refresh,unavailable,toggleMute,toggleEco}) {
+export function createFloating({host,button,view,bind,refresh,unavailable,prepare,toggleMute,toggleEco}) {
   const parent = host.parentNode;
   const slot = document.createComment('keyboard viewport');
   host.before(slot);
@@ -17,8 +17,10 @@ export function createFloating({host,button,view,bind,refresh,unavailable,toggle
     mute.querySelector('use').setAttribute('href',silent ? '#i-mute' : '#i-volume');
     mute.setAttribute('aria-label',silent ? '開啟聲音' : '靜音');
     mute.setAttribute('aria-pressed',silent);
-    eco.setAttribute('aria-label',prefs.quality === 'eco' ? '切換為標準模式' : '切換為省電模式');
-    eco.setAttribute('aria-pressed',prefs.quality === 'eco');
+    const saving=prefs.quality==='eco';
+    eco.querySelector('span').textContent=saving ? '省電模式' : '標準模式';
+    eco.setAttribute('aria-pressed',saving);
+    eco.title=saving ? '目前為省電模式，點選切換為標準模式' : '目前為標準模式，點選啟用省電模式';
   }
   function restore(win) {
     if (mini !== win) return;
@@ -48,6 +50,7 @@ export function createFloating({host,button,view,bind,refresh,unavailable,toggle
     opening=true;
     let win;
     try {
+      prepare();
       win=await window.documentPictureInPicture.requestWindow({
         width:400,height:250,preferInitialWindowPlacement:true
       });
@@ -65,15 +68,25 @@ export function createFloating({host,button,view,bind,refresh,unavailable,toggle
       doc.head.append(style);
       doc.body.className='pip-page';
       doc.body.append(document.querySelector('.symbols').cloneNode(true),template.content.cloneNode(true));
-      doc.querySelector('.mini-stage').append(host);
-      doc.querySelector('[data-mini="mute"]').onclick=toggleMute;
-      doc.querySelector('[data-mini="eco"]').onclick=toggleEco;
+      const stage=doc.querySelector('.mini-stage');
+      stage.append(host);
+      // A pointer-operated toggle should not consume the next Space/Enter.
+      // Tab/keyboard activation keeps native button focus and semantics.
+      function control(action) {
+        return event=>{
+          action();
+          if (event.detail>0) stage.focus({preventScroll:true});
+        };
+      }
+      doc.querySelector('[data-mini="mute"]').onclick=control(toggleMute);
+      doc.querySelector('[data-mini="eco"]').onclick=control(toggleEco);
       doc.querySelector('[data-mini="back"]').onclick=()=>close();
       placeholder.hidden=false;
       button.setAttribute('aria-pressed','true');
       button.querySelector('span').textContent='收回小窗';
       view.rehost();
       unbind=bind(win);
+      stage.focus({preventScroll:true});
       refresh();
     } catch {
       if (win) { restore(win); if (!win.closed) win.close(); }

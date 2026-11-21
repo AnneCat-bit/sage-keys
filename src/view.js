@@ -139,12 +139,15 @@ export function createView(host, quality, onChange) {
     if (backend && !surface.document.hidden) backend.draw(yaw,pitch,zoom,quality);
   }
   function notify() { onChange({ flat, zoom, view, active }); }
-  function frame(now) {
+  function frame(stamp) {
     raf = 0;
-    if (!backend || !active || surface.document.hidden) return;
-    const elapsed = now-last;
+    if (!backend || surface.document.hidden) return;
+    const elapsed = stamp-last;
     const period = quality === 'eco' ? 1000/30 : 1000/60;
     if (elapsed < period-.6) { raf = surface.requestAnimationFrame(frame); return; }
+    // rAF timestamps pace frames on the canvas owner. Key events and
+    // rebound progress use the same clock regardless of document.
+    const now=performance.now();
     for (const [code, released] of moving) {
       if (unpainted.has(code)) { moving.set(code, now); continue; }
       const depth = Math.max(0, 1-(now-released)/105)**2;
@@ -154,11 +157,11 @@ export function createView(host, quality, onChange) {
     }
     backend.draw(yaw, pitch, zoom, quality);
     unpainted.clear();
-    last = now;
+    last = stamp;
     if (moving.size) raf = surface.requestAnimationFrame(frame);
   }
   function requestDraw() {
-    if (backend && active && !surface.document.hidden && !raf) raf = surface.requestAnimationFrame(frame);
+    if (backend && !surface.document.hidden && !raf) raf = surface.requestAnimationFrame(frame);
   }
   function fallback() {
     flat = true;
@@ -226,6 +229,17 @@ export function createView(host, quality, onChange) {
   function refreshSize() {
     if (active) requestDraw(); else drawVisible();
   }
+  function refreshSurface() {
+    // A previously requested frame can be parked while this document is
+    // hidden. On display/ownership changes start from a complete frame.
+    if (raf) surface.cancelAnimationFrame(raf);
+    raf=0; last=-Infinity;
+    backend?.invalidate?.();
+    if (!surface.document.hidden) {
+      drawVisible();
+      if (moving.size) requestDraw();
+    }
+  }
   function rehost() {
     observer?.disconnect();
     if (raf) surface.cancelAnimationFrame(raf);
@@ -233,10 +247,9 @@ export function createView(host, quality, onChange) {
     for (const code of depths.keys()) backend?.move(code,0);
     depths.clear(); pressed.clear(); moving.clear(); unpainted.clear(); touches.clear();
     surface=host.ownerDocument.defaultView;
-    backend?.invalidate?.();
     observer=new surface.ResizeObserver(refreshSize);
     observer.observe(host);
-    refreshSize();
+    refreshSurface();
   }
   rehost();
   makeScene(host, fallback).then(scene => {
@@ -248,22 +261,25 @@ export function createView(host, quality, onChange) {
   }).catch(fallback);
   return {
     key(code, down) {
-      if (!active || !supported.has(code)) return false;
+      if (!supported.has(code)) return false;
       if (down) {
         if (pressed.has(code)) return false;
         pressed.add(code); unpainted.add(code); moving.delete(code); depths.set(code,1);
         backend?.move(code,1);
       } else {
         if (!pressed.delete(code)) return false;
-        moving.set(code,surface.performance.now());
+        moving.set(code,performance.now());
       }
       requestDraw();
       return true;
     },
+    releaseAll() {
+      for (const code of pressed) this.key(code,false);
+    },
     releaseChord() {
       for (const code of pressed) if (!/^(Meta|Shift|Alt|Control)/.test(code)) this.key(code,false);
     },
-    selectView, setZoom, setActive, rehost, refreshSize,
+    selectView, setZoom, setActive, rehost, refreshSurface,
     adjustZoom(factor) { setZoom(Math.round((zoom+factor)*100)/100); },
     reset() { setZoom(1); selectView('angle'); },
     setQuality(value) { quality = value; requestDraw(); }
