@@ -8,6 +8,7 @@ protocol PhysicalMonitoring: AnyObject {
     var foregroundAllowed: () -> Bool { get set }
     var running: Bool { get }
     var hasAccess: Bool { get }
+    func requestListenAccess()
     func start() -> Bool
     func stop()
 }
@@ -38,6 +39,8 @@ final class KeyMonitor: PhysicalMonitoring {
               s[kCGSessionLoginDoneKey as String] as? Bool == true else { return false }
         return s["CGSSessionScreenIsLocked"] as? Bool != true
     }
+    // Only called directly from the user's consent/start action, never on launch or recheck.
+    func requestListenAccess() { _ = CGRequestListenEventAccess() }
     static var authorized: Bool { CGPreflightListenEventAccess() }
 
     func start() -> Bool {

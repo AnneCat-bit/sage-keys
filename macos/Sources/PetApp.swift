@@ -36,6 +36,12 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
     private var verifiedFront: NSRunningApplication?
     private var foregroundObserver: NSKeyValueObservation?
     private var protectionTimer: Timer?
+    private let progress = PermissionProgress()
+    private var guide: PermissionGuide?
+    private var oneTimeTarget: NSRunningApplication?
+    private var oneTimeSignature: TrustedApp?
+    private var needsPermissionHelp = false
+    private var restoringGuide = true
     private var consentGeneration = 0
     private var terminationReplyPending = false
     private var syncStatus = "等待已信任 App"
@@ -66,7 +72,14 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
             DispatchQueue.main.async {self?.frontChanged()}
         }
         monitor.foregroundAllowed={ [weak self] in self?.isAllowedFront() ?? false }
-        display.onReady={ [weak self] value in self?.mode=value; self?.refresh() }
+        display.onReady={ [weak self] value in
+            guard let self = self else {return}
+            self.mode=value; self.refresh()
+            if self.restoringGuide {
+                self.restoringGuide=false
+                if self.progress.resumeOnLaunch {self.openGuide()}
+            }
+        }
         display.onFailure={ [weak self] message in self?.pauseAll(message) }
         observeSystem()
         applySettings()
@@ -210,6 +223,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
 
     private func pauseAll(_ reason:String) {
         endSession()
+        if reason == "未獲輸入監察授權" {needsPermissionHelp = true}
         paused=true
         demoWork?.cancel();demoWork=nil
         notice=reason;display?.setPaused(true);refresh()
@@ -218,7 +232,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         guard item != nil else{return}
         label.stringValue = armed ? syncStatus : ("同步已關閉" + (notice.map { " · " + $0 } ?? ""))
         label.toolTip=label.stringValue + " · " + mode
-        syncButton.title=armed ? "暫停":"同步"
+        syncButton.title = armed ? "暫停" : ((needsPermissionHelp || progress.pending != nil) ? "授權導覽" : "同步")
         muteButton.title=prefs.bool(forKey:"muted") ? "開聲":"靜音"
         item.button?.image=NSImage(systemSymbolName:monitor.running ? "keyboard.fill":"keyboard",accessibilityDescription:"Sage Keys")
         item.button?.title=armed ? (monitor.running ? " 同步":" 待命") : ""
@@ -229,17 +243,113 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         display.configure(muted:prefs.bool(forKey:"muted"),eco:prefs.bool(forKey:"eco"),top:prefs.bool(forKey:"top"),tone:prefs.string(forKey:"tone") ?? "rainy")
         refresh()
     }
-    private func requestAccess(for generation: Int) -> Bool {
-        let granted = monitor.hasAccess || CGRequestListenEventAccess()
+    private func hasPermissionOrGuide(_ intent: PendingConsent, generation: Int,
+                                      process: NSRunningApplication? = nil, signature: TrustedApp? = nil) -> Bool {
+        if monitor.hasAccess {progress.observedGrant();return true}
+        // The system may quit the app from its own prompt. Save the user's choice first.
+        progress.stage(intent)
+        oneTimeTarget = process
+        oneTimeSignature = signature
+        monitor.requestListenAccess()
         guard generation == consentGeneration, !closing else {return false}
-        if !granted {pauseAll("未獲輸入監察授權")}
-        return granted
+        pauseAll("請完成輸入監察設定")
+        openGuide()
+        return false
     }
+
+    private func clearDraft() {
+        progress.clear()
+        oneTimeTarget = nil
+        oneTimeSignature = nil
+        needsPermissionHelp = false
+        guide?.dismiss()
+    }
+
     @objc private func toggleSync() {
         if armed {pauseAll("已暫停");return}
         guard display.ready else {notice="等待鍵盤載入";refresh();return}
-        if trust.entries.isEmpty {addFront();return}
-        if requestAccess(for: consentGeneration) {beginSession()}
+        if progress.pending != nil {openGuide();return}
+        if trust.entries.isEmpty {
+            if needsPermissionHelp && !monitor.hasAccess {openGuide()} else {addFront()}
+            return
+        }
+        if hasPermissionOrGuide(.trustedList, generation: consentGeneration) {
+            clearDraft()
+            beginSession()
+        }
+    }
+
+    @objc private func openGuide() {
+        guard !closing else {return}
+        if armed {pauseAll("已暫停同步")}
+        if guide == nil {
+            let view = PermissionGuide()
+            view.recheck = { [weak self] in self?.updateGuide() }
+            view.finish = { [weak self] in self?.finishGuide() }
+            view.later = { [weak self] in
+                guard let self = self else {return}
+                self.progress.resumeNextLaunch(false)
+                if self.progress.pending == .help {self.clearDraft()}
+                self.guide?.dismiss()
+                self.refresh()
+            }
+            view.quitToApply = { [weak self] in
+                guard let self = self else {return}
+                if self.progress.pending == nil {self.progress.stage(.help)}
+                self.progress.resumeNextLaunch(true)
+                self.quit()
+            }
+            guide = view
+        }
+        updateGuide()
+        guide?.present()
+    }
+
+    private func updateGuide(_ hint: String = "") {
+        let status = ListenStatus.current(preflight: monitor.hasAccess)
+        needsPermissionHelp = status != .granted
+        let permission = progress.statusText(status)
+        var target: String
+        var canConfirm = true
+        switch progress.pending {
+        case .remembered(let identity):
+            target = "已選擇記住「" + identity.name + "」\n" + identity.bundleID + " · " + identity.signer
+        case .once where oneTimeTarget?.isTerminated == false:
+            target = "只允許這次的「" + (oneTimeTarget?.localizedName ?? "App") + "」。"
+        case .once:
+            target = "原本的單次選擇已結束。切回目標 App，再從「管理已信任 App」選「允許目前 App」。"
+            canConfirm = false
+        default:
+            canConfirm = !trust.entries.isEmpty
+            target = canConfirm ? "已保存的信任清單仍在。確認後才會開始本次同步。" : "完成後切回目標 App，再從選單允許該 App。"
+        }
+        guide?.update(status:permission, target:"跨 App 鍵帽和錄音需要系統允許讀取物理鍵位。\n" + target,
+                      canStart:status == .granted && canConfirm && display.ready, hint:hint)
+        refresh()
+    }
+
+    private func finishGuide() {
+        guard display.ready, !closing, monitor.hasAccess else {updateGuide();return}
+        guard KeyMonitor.safeSession() else {updateGuide("系統正在保護鍵盤輸入。請離開安全輸入欄，再手動確認。");return}
+        switch progress.pending {
+        case .remembered(let identity):
+            let matching = NSRunningApplication.runningApplications(withBundleIdentifier: identity.bundleID)
+                .filter { eligible($0) && SignedProcess($0)?.matches(identity) == true }
+            guard matching.count == 1,
+                  approve(matching[0],saving:true,candidate:identity,prior:[]) else {
+                updateGuide("請先打開原本的「" + identity.name + "」再確認。若已更換簽署身分，請重新選取並允許。");return
+            }
+        case .once:
+            guard let process = oneTimeTarget, eligible(process),
+                  oneTimeSignature.map({ SignedProcess(process)?.matches($0) == true }) ?? true,
+                  approve(process,saving:false,candidate:nil,prior:[]) else {
+                updateGuide("請從選單重新選取要允許的 App。");return
+            }
+        default:
+            guard !trust.entries.isEmpty else {updateGuide();return}
+        }
+        clearDraft()
+        beginSession()
     }
 
     private static let scope = "範圍涵蓋整個 App，用目前按住的物理鍵位驅動本機鍵帽及錄音。瀏覽器的所有網站都在同一範圍內。無法辨識每個網站或密碼欄，輸入敏感資料前請暫停。"
@@ -265,12 +375,14 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         let response = alert.runModal()
         guard generation == consentGeneration else {return}
         guard response == .alertFirstButtonReturn else {pauseAll("已取消允許");return}
-        guard requestAccess(for: generation) else {return}
-        guard KeyMonitor.safeSession() else {pauseAll("系統安全輸入保護中或工作階段已鎖定");return}
         let remember = alert.showsSuppressionButton && alert.suppressionButton?.state == .on
+        let intent: PendingConsent = remember ? candidate.map(PendingConsent.remembered) ?? .once : .once
+        guard hasPermissionOrGuide(intent, generation:generation, process:front, signature:candidate) else {return}
+        guard KeyMonitor.safeSession() else {pauseAll("系統安全輸入保護中或工作階段已鎖定");return}
         guard approve(front, saving: remember, candidate: candidate, prior: prior) else {
             pauseAll("App 身分有變，請重新選取");return
         }
+        clearDraft()
         beginSession()
     }
 
@@ -289,10 +401,12 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
     private func forget(_ bundleID: String?) {
         // Detach before changing scope, even when a menu is tracking.
         if armed {detachFront()}
+        if case .remembered(let saved) = progress.pending, saved.bundleID == bundleID {clearDraft()}
         if let id = bundleID {
             trust.remove(id)
             allowed.removeAll { $0.bundleIdentifier == id }
         } else {
+            clearDraft()
             trust.clear()
             allowed.removeAll()
         }
@@ -358,7 +472,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         if !armed {paused=false;notice=nil;display.setPaused(false)}
         refresh()
     }
-    @objc private func hide() {pauseAll("已隱藏");panel.orderOut(nil)}
+    @objc private func hide() {pauseAll("已隱藏");guide?.dismiss();panel.orderOut(nil)}
     func windowShouldClose(_ sender:NSWindow)->Bool {hide();return false}
     func windowDidMiniaturize(_ notification:Notification){pauseAll("已縮小")}
     func windowDidDeminiaturize(_ notification:Notification) {show()}
@@ -394,6 +508,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         menu.removeAllItems()
         menu.addItem(withTitle: label.stringValue, action: nil, keyEquivalent: "")
         _=entry(menu,armed ? "立即暫停同步":"開啟本次跨 App 同步",#selector(toggleSync))
+        _=entry(menu,"輸入監察授權導覽…",#selector(openGuide))
         let manage = NSMenuItem(title: "管理已信任 App", action: nil, keyEquivalent: "")
         menu.addItem(manage); manage.submenu = trustMenu()
         if armed {_=entry(menu,"允許另一個目前 App…",#selector(addFront))}
@@ -423,7 +538,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
     func applicationWillTerminate(_ notification:Notification) {if !closing {shutdown()}}
     func shutdown(completion:@escaping()->Void = {}) {
         guard !closing else{return};closing=true
-        endSession();demoWork?.cancel()
+        endSession();demoWork?.cancel();guide?.dismiss();guide=nil
         for (center,token) in observed {center.removeObserver(token)};observed.removeAll()
         panel?.delegate=nil;panel?.orderOut(nil)
         if let item=item {NSStatusBar.system.removeStatusItem(item)}
