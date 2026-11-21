@@ -62,6 +62,17 @@ final class PermissionProgress {
     }
 }
 
+private final class GuideBackground: NSView {
+    override var isOpaque: Bool {true}
+    override func draw(_ dirtyRect: NSRect) {
+        let dark = effectiveAppearance.bestMatch(from:[.darkAqua,.aqua]) == .darkAqua
+        let sage = dark ? NSColor(srgbRed:0.14,green:0.17,blue:0.15,alpha:1)
+                        : NSColor(srgbRed:0.95,green:0.96,blue:0.93,alpha:1)
+        sage.setFill()
+        dirtyRect.fill()
+    }
+}
+
 final class PermissionGuide: NSWindowController, NSWindowDelegate {
     private let status = NSTextField(wrappingLabelWithString: "")
     private let target = NSTextField(wrappingLabelWithString: "")
@@ -123,7 +134,7 @@ final class PermissionGuide: NSWindowController, NSWindowDelegate {
         row([button("重新檢查權限",#selector(check)),button("在 Finder 顯示此版本",#selector(reveal)),button("重新選取 App",#selector(selectTarget))])
         confirm.title="確認並開始本次同步";confirm.target=self;confirm.action = #selector(start);confirm.bezelStyle = .rounded
         row([confirm,button("稍後再說",#selector(deferGuide)),button("退出並保留進度",#selector(quit))])
-        let content = NSView()
+        let content = GuideBackground()
         window.contentView = content
         stack.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(stack)

@@ -66,6 +66,10 @@ struct GuideChecks {
             try press("確認並開始本次同步")
             _ = try await daily.focus(editor);try await daily.wait("manual start") {pet.qaActiveID == editor}
             try daily.menu("立即暫停")
+            try daily.menu("開啟本次")
+            try await daily.wait("already granted, no guide or request") {pet.qaActiveID == editor}
+            try require(endpoint.requests == 1 && window == nil, "already granted asked again")
+            try daily.menu("立即暫停")
             let initial = TrustedApps().entries
             endpoint.simulateDenied=true;endpoint.grantOnRequest=false
             try await consent(calc,remember:true)
@@ -77,12 +81,18 @@ struct GuideChecks {
             try require(window == nil && !PermissionProgress().resumeOnLaunch, "defer")
             try off()
             try daily.menu("輸入監察授權導覽")
+            try press("打開輸入監察設定")
+            try await daily.wait("Settings foreground from guide button") {
+                NSWorkspace.shared.frontmostApplication?.bundleIdentifier == "com.apple.systempreferences"
+            }
+            try off()
+            try daily.menu("輸入監察授權導覽")
             guard let content=window?.contentView, let bitmap=content.bitmapImageRepForCachingDisplay(in:content.bounds) else {throw Failure("guide layout")}
             content.layoutSubtreeIfNeeded()
             for b in controls(content) {try require(content.bounds.insetBy(dx:-1,dy:-1).contains(b.convert(b.bounds,to:content)), "clipped "+b.title)}
             content.cacheDisplay(in:content.bounds,to:bitmap)
             try bitmap.representation(using:.png,properties:[:])?.write(to:evidence.appendingPathComponent("permission-guide.png"))
-            result["checks"]=["first grant needs manual start","decline keeps target out of trust","later retains draft","recheck issues no request","status and fallback branches","buttons inside window"]
+            result["checks"]=["first grant needs manual start","decline keeps target out of trust","later retains draft","recheck issues no request","status and fallback branches","Settings foreground from actual guide button","already granted skipped OS request","buttons inside window"]
             result["size"]=NSStringFromSize(content.bounds.size)
         case "guide-restored":
             try await daily.wait("guide restored") {window != nil}
