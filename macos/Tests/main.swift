@@ -216,6 +216,7 @@ app.delegate=delegate
         try require((try await js("qa.requestsOut")) as? Int==1,"unexpected app fetch")
         return ["appFetchCount":0,"externalProbeBlockedByCSP":true,"origin":"bundle file"]
     }
+    await record("thirdPartyBrowserIdentity") {try await daily.browserIdentity()}
     await record("shutdown") {
         weak var host=delegate.display
         weak var web=delegate.display?.web

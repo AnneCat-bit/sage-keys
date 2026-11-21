@@ -57,10 +57,11 @@ struct DailyChecks {
         return target
     }
 
-    func open(_ url: URL) async throws -> NSRunningApplication {
+    func open(_ url: URL, arguments: [String] = []) async throws -> NSRunningApplication {
         try await withCheckedThrowingContinuation { continuation in
             let config = NSWorkspace.OpenConfiguration()
             config.createsNewApplicationInstance = false
+            config.arguments = arguments
             NSWorkspace.shared.openApplication(at: url, configuration: config) { app, error in
                 if let app = app {continuation.resume(returning: app)}
                 else {continuation.resume(throwing: error ?? Failure("Launch Services could not open application"))}
@@ -182,6 +183,23 @@ struct DailyChecks {
         return ["workspaceTransitions": trace, "checkboxDefaultsOff": true, "cancelGrantsNothing": true,
                 "savedIdentities": saved.map {[$0.bundleID, $0.signer]}, "differentDesignatedRequirementRejected": true,
                 "adHocProcessRejected": true, "removedActive": true, "cleared": true, "pauseStoppedObserversAndTimer": true]
+    }
+
+    func browserIdentity() async throws -> [String: Any] {
+        let id = "com.google.Chrome"
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) else {throw Failure("Chrome unavailable")}
+        let existing = NSRunningApplication.runningApplications(withBundleIdentifier: id).first
+        let chrome: NSRunningApplication
+        if let existing = existing {chrome = existing}
+        else {chrome = try await open(url, arguments: ["--no-first-run", "--no-default-browser-check", "--disable-background-networking", "about:blank"])}
+        defer {if existing == nil {chrome.terminate()}}
+        _ = try await approve(id, remember: true)
+        guard let identity = TrustedApps().entries.first(where: { $0.bundleID == id }) else {throw Failure("Chrome consent missing")}
+        try require(identity.signer.hasPrefix("Team ") && TrustedApps().allows(chrome), "expected a verified third-party signer")
+        try menu("管理已信任 App", identity.name, "移除")
+        try require(!pet.qaMonitoring && !TrustedApps().allows(chrome), "browser removal")
+        try menu("立即暫停")
+        return ["bundleID":identity.bundleID, "signer":identity.signer, "savedAndRevalidated":true, "removed":true]
     }
 
     func protection() async throws -> [String: Any] {
