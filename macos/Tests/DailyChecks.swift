@@ -30,7 +30,7 @@ struct DailyChecks {
     func wait(_ name: String, seconds: Double = 6, until condition: () -> Bool) async throws {
         let end = Date().addingTimeInterval(seconds)
         while !condition() {
-            guard Date() < end else {throw Failure("timed out: " + name + " · " + pet.qaStatus)}
+            guard Date() < end else {throw Failure("timed out: " + name + " · " + pet.qaStatus + " · front=" + (NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "nil"))}
             try await Task.sleep(nanoseconds: 50_000_000)
         }
     }
@@ -53,7 +53,12 @@ struct DailyChecks {
             }
         }
         _ = target.activate(options: [.activateIgnoringOtherApps])
-        try await wait("foreground " + bundle) {NSWorkspace.shared.frontmostApplication == target}
+        var frontSince: Date?
+        try await wait("foreground " + bundle) {
+            guard NSWorkspace.shared.frontmostApplication == target else {frontSince = nil;return false}
+            if frontSince == nil {frontSince = Date()}
+            return Date().timeIntervalSince(frontSince!) >= 0.20
+        }
         return target
     }
 

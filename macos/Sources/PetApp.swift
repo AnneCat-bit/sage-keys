@@ -34,7 +34,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
     private let trust = TrustedApps()
     private var allowed = [NSRunningApplication]() // Explicit, ephemeral grants to particular instances.
     private var verifiedFront: NSRunningApplication?
-    private var foregroundObserver: NSObjectProtocol?
+    private var foregroundObserver: NSKeyValueObservation?
     private var protectionTimer: Timer?
     private var consentGeneration = 0
     private var terminationReplyPending = false
@@ -178,9 +178,12 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         paused = false
         notice = nil
         if foregroundObserver == nil {
-            foregroundObserver = NSWorkspace.shared.notificationCenter.addObserver(
-                forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
-            ) { [weak self] _ in self?.frontChanged() }
+            // Observe the actual key-event destination. A didActivate notification can
+            // arrive before frontmostApplication reflects the new process.
+            foregroundObserver = NSWorkspace.shared.observe(\.frontmostApplication, options: [.new]) { [weak self] _, _ in
+                if Thread.isMainThread {self?.frontChanged()}
+                else {DispatchQueue.main.async {self?.frontChanged()}}
+            }
             // macOS has no public TCC revocation notification. Check protection only while armed,
             // including standby. Foreground identity resolution is driven by Workspace notifications.
             let timer = Timer(timeInterval: 1.5, repeats: true) { [weak self] _ in
@@ -201,10 +204,8 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         monitor.stop()
         protectionTimer?.invalidate()
         protectionTimer = nil
-        if let token = foregroundObserver {
-            NSWorkspace.shared.notificationCenter.removeObserver(token)
-            foregroundObserver = nil
-        }
+        foregroundObserver?.invalidate()
+        foregroundObserver = nil
     }
 
     private func pauseAll(_ reason:String) {
