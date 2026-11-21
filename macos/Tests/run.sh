@@ -21,7 +21,7 @@ kill -TERM "$release_pid"
 wait "$release_pid" || true
 ditto "$actual" "$qa"
 /usr/libexec/PlistBuddy -c 'Set :CFBundleIdentifier io.github.annecat-bit.sagekeys.qa' "$qa/Contents/Info.plist"
-xcrun swiftc -swift-version 5 -D SAGE_QA -O -target arm64-apple-macos13.0 macos/Sources/{PhysicalKeys,KeyMonitor,PetWeb,PetApp}.swift macos/Tests/main.swift -o "$qa/Contents/MacOS/SageKeys"
+xcrun swiftc -swift-version 5 -D SAGE_QA -O -target arm64-apple-macos13.0 macos/Sources/{PhysicalKeys,KeyMonitor,TrustedApps,PetWeb,PetApp}.swift macos/Tests/main.swift -o "$qa/Contents/MacOS/SageKeys"
 codesign --force --sign - --options runtime --timestamp=none "$qa"
 python3 macos/Tests/processes.py "$evidence"
 "$qa/Contents/MacOS/SageKeys" "$evidence" "$root/macos/Tests/probe.js" > "$evidence/native-tests.log" 2>&1 &

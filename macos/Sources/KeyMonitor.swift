@@ -7,13 +7,13 @@ final class KeyMonitor {
     var foregroundAllowed: () -> Bool = { false }
     private var port: CFMachPort?
     private var source: CFRunLoopSource?
-    private var guardTimer: Timer?
+    var foregroundChanged: () -> Void = {}
     private var keys = PhysicalKeys()
     var running: Bool { port != nil }
     #if SAGE_QA
     var simulateDenied=false
     #endif
-    private var hasAccess:Bool {
+    var hasAccess:Bool {
         #if SAGE_QA
         if simulateDenied {return false}
         #endif
@@ -44,27 +44,21 @@ final class KeyMonitor {
         port=tap; source=signal
         CFRunLoopAddSource(CFRunLoopGetMain(),signal,.commonModes)
         CGEvent.tapEnable(tap:tap,enable:true)
-        let timer=Timer(timeInterval:0.75,repeats:true) { [weak self] _ in
-            guard let self=self else { return }
-            if !self.hasAccess || !Self.safeSession() || !self.foregroundAllowed() { self.interrupted() }
-        }
-        timer.tolerance=0.15
-        RunLoop.main.add(timer,forMode:.common)
-        guardTimer=timer
         return true
     }
 
     private func receive(_ type: CGEventType, _ event: CGEvent) {
         // Fail closed before inspecting even the physical key field.
-        guard running, type != .tapDisabledByTimeout, type != .tapDisabledByUserInput,
-              hasAccess, Self.safeSession(), foregroundAllowed() else { interrupted(); return }
+        guard running else {return}
+        guard type != .tapDisabledByTimeout, type != .tapDisabledByUserInput,
+              hasAccess, Self.safeSession() else { interrupted(); return }
+        guard foregroundAllowed() else { foregroundChanged(); return }
         let num=event.getIntegerValueField(.keyboardEventKeycode)
         if keys.apply(type,num,event.flags,repeated:type == .keyDown && event.getIntegerValueField(.keyboardEventAutorepeat) != 0) {
             changed(keys.held)
         }
     }
     func stop() {
-        guardTimer?.invalidate(); guardTimer=nil
         if let tap=port {
             CGEvent.tapEnable(tap:tap,enable:false)
             if let s=source { CFRunLoopRemoveSource(CFRunLoopGetMain(),s,.commonModes) }
