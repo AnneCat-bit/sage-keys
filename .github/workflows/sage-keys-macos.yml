@@ -1,0 +1,52 @@
+name: Sage Keys for Mac
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'macos/**'
+      - 'src/**'
+      - 'assets/**'
+      - 'style.css'
+      - '.github/workflows/sage-keys-macos.yml'
+permissions:
+  contents: read
+jobs:
+  apple-silicon:
+    runs-on: macos-15
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Record toolchain and build offline bundle
+        run: |
+          uname -m
+          sw_vers
+          xcodebuild -version
+          swiftc --version
+          test "$(uname -m)" = arm64
+          npm ci --prefix macos
+          bash macos/build.sh
+      - name: Verify and package personal test app
+        run: |
+          codesign --verify --deep --strict --verbose=2 'macos/build/Sage Keys.app'
+          ditto -c -k --sequesterRsrc --keepParent 'macos/build/Sage Keys.app' 'macos/build/Sage-Keys-arm64.zip'
+          cd macos/build && shasum -a 256 Sage-Keys-arm64.zip > SHA256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Sage-Keys-arm64-personal-test
+          path: |
+            macos/build/Sage-Keys-arm64.zip
+            macos/build/SHA256.txt
+          if-no-files-found: error
+          retention-days: 30
+      - name: Run native state and WKWebView checks
+        run: bash macos/Tests/run.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Sage-Keys-mac-test-evidence
+          path: macos/build/evidence/
+          if-no-files-found: warn
+          retention-days: 30
