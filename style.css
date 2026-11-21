@@ -127,6 +127,7 @@ dt{font-weight:600;color:#314d37;margin:15px 0 2px}dd{margin:0}
 .mini-actions [aria-pressed=true]{background:#e0e9db}
 .mini-actions [data-mini=eco]{border:1px solid #c4cfc0;color:#425347}
 .mini-actions [data-mini=eco][aria-pressed=true]{background:#466249;color:#fff;border-color:#466249}
-.mini-stage:focus-visible{outline:2px solid #799375;outline-offset:-2px}
+.pip-page:focus{outline:none}
+.pip-page:focus-visible>.mini-bar{border-top-color:#64836a}
 @media(max-width:600px){.display-controls{margin-left:auto;gap:7px;align-self:flex-end}.float-mode{padding:3px 8px;min-height:35px;font-size:.72rem}.float-mode .icon{width:14px;height:14px}}
 @media(max-width:245px){.mini-actions [data-mini=back] span,.mini-name{display:none}}

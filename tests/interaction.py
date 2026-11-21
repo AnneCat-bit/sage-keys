@@ -66,7 +66,7 @@ with sync_playwright() as pw, native_chromium(pw) as (browser,ctx):
         # read after each rendered pass, rather than screenshotting on a timer.
         source.wait_for_timeout(160)
         at_release=page.evaluate('probe.frames.length')
-        if image_test and args.capture: page.evaluate('probe.captureBelow=probe.frames.at(-1).delta')
+        if image_test and args.capture: page.evaluate('probe.captureBelow=probe.frames.at(-1).delta;probe.best=Infinity')
         source.keyboard.up(key)
         wait(lambda:page.evaluate('n=>probe.frames.length>n && probe.frames.at(-1).pixels===0',at_release),
              'no return to rest in '+name)
@@ -75,12 +75,14 @@ with sync_playwright() as pw, native_chromium(pw) as (browser,ctx):
         frames=data['frames']
         peak=max(f['delta'] for f in frames[:at_release])
         intermediate=[f for f in frames[at_release:] if 0<f['delta']<peak]
-        if image_test and args.capture: snap('top-rebound','probe.capture')
+        if image_test and args.capture:
+            snap('top-rebound','probe.capture')
+            page.evaluate('probe.captureBelow=0')
         assert data['rest']['delta']==0,(name,key,data['rest'])
         assert intermediate,(name,key,frames)
         assert max(f['pixels'] for f in frames)>80,(name,key,frames)
         results['holds'][name+' '+key]={
-            'pixels':[f['pixels'] for f in frames], 'sum_rgb_delta':[f['delta'] for f in frames],
+            'pixels':[f['pixels'] for f in frames], 'max_channel_delta_sum':[f['delta'] for f in frames],
             'first_scissor':frames[0]['area'],'rest':data['rest'],'audio':sound,
             'events':source.evaluate("n=>probe.events.slice(n).filter(e=>e[0]==='keydown'||e[0]==='keyup')",start_events)
         }
@@ -139,6 +141,16 @@ with sync_playwright() as pw, native_chromium(pw) as (browser,ctx):
     with ctx.expect_page() as opening: page.locator('#float-mode').click()
     mini=opening.value
     mini.locator('.mini-bar').wait_for()
+    # Some Linux window managers choose a larger initial window. Exercise
+    # the target 400 × 250 content size using the browser's real window.
+    mini_cdp=ctx.new_cdp_session(mini)
+    bounds=mini_cdp.send('Browser.getWindowForTarget')
+    dw,dh=mini.evaluate('[outerWidth-innerWidth,outerHeight-innerHeight]')
+    mini_cdp.send('Browser.setWindowBounds',{'windowId':bounds['windowId'],
+                                             'bounds':{'width':400+dw,'height':250+dh}})
+    wait(lambda:mini.evaluate('innerWidth===400 && innerHeight===250 && document.querySelector("canvas").width===400'),
+         'mini content did not resize and redraw')
+    results['pip_size']=mini.evaluate('[innerWidth,innerHeight]')
     def mode(expected):
         toggle=mini.locator('[data-mini=eco]')
         expected_text='省電模式' if expected=='eco' else '標準模式'
@@ -173,6 +185,14 @@ with sync_playwright() as pw, native_chromium(pw) as (browser,ctx):
     prior=meter_reset();mini.keyboard.press('Space')
     results['unmuted_space']=audible(prior)
     assert page.locator('#sound-toggle').get_attribute('aria-pressed')=='true'
+    mini.keyboard.press('Tab')
+    assert mini.evaluate("document.activeElement.dataset.mini==='mute'")
+    mini.keyboard.press('Space')
+    assert page.locator('#sound-toggle').get_attribute('aria-pressed')=='false'
+    mini.keyboard.press('Enter')
+    assert page.locator('#sound-toggle').get_attribute('aria-pressed')=='true'
+    assert mini.evaluate("document.activeElement.dataset.mini==='mute'")
+    results['keyboard_controls']=['Tab to mute','Space muted','Enter unmuted','button kept focus']
     for tone in ['rainy','topre','brown']:
         page.bring_to_front()
         page.locator('#tone').select_option(tone)
@@ -191,11 +211,13 @@ with sync_playwright() as pw, native_chromium(pw) as (browser,ctx):
     wait(lambda:page.evaluate('document.hidden'),'opener was never actually hidden')
     wait(lambda:page.evaluate("probe.context.state==='suspended'"),'audio did not suspend')
     page.wait_for_timeout(160)
-    start=page.evaluate('[probe.draws,probe.starts.length]')
+    def activity():
+        return page.evaluate('[probe.draws,probe.starts.length,probe.frameRequests]')+[mini.evaluate('probe.frameRequests')]
+    start=activity()
     other.keyboard.type('outside')
     other.wait_for_timeout(350)
-    assert start==page.evaluate('[probe.draws,probe.starts.length]')
-    results['other_tab']={'main':state(page),'mini':state(mini),'added_draws':0,'added_sources':0}
+    assert start==activity()
+    results['other_tab']={'main':state(page),'mini':state(mini),'added_draws':0,'added_sources':0,'added_frame_requests':0}
     mini.bring_to_front();mini.locator('.mini-stage').click()
     results['focus_mini_hidden_main']=[state(page),state(mini)]
     assert page.evaluate('document.hidden') and mini.evaluate('document.hasFocus()')
@@ -203,6 +225,10 @@ with sync_playwright() as pw, native_chromium(pw) as (browser,ctx):
     burst('visible mini, hidden main',mini)
     wait(lambda:page.evaluate("probe.context.state==='suspended'"),'visible PiP idle audio did not suspend')
     results['hidden_opener_idle_audio']=page.evaluate('probe.context.state')
+    quiet=activity()
+    mini.wait_for_timeout(500)
+    assert quiet==activity()
+    results['focused_mini_idle']={'ms':500,'added_draws':0,'added_frame_requests':0,'added_sources':0}
     results['mini_focus_events']=mini.evaluate("probe.events.filter(e=>['focus','blur','visibilitychange'].includes(e[0]))")
     other.close()
     mini.locator('[data-mini=back]').click()

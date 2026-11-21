@@ -67,6 +67,7 @@ export function createFloating({host,button,view,bind,refresh,unavailable,prepar
         .map(rule=>rule.cssText).join('\n');
       doc.head.append(style);
       doc.body.className='pip-page';
+      doc.body.tabIndex=-1;
       doc.body.append(document.querySelector('.symbols').cloneNode(true),template.content.cloneNode(true));
       const stage=doc.querySelector('.mini-stage');
       stage.append(host);
@@ -75,7 +76,7 @@ export function createFloating({host,button,view,bind,refresh,unavailable,prepar
       function control(action) {
         return event=>{
           action();
-          if (event.detail>0) stage.focus({preventScroll:true});
+          if (event.detail>0) doc.body.focus({preventScroll:true});
         };
       }
       doc.querySelector('[data-mini="mute"]').onclick=control(toggleMute);
@@ -86,7 +87,7 @@ export function createFloating({host,button,view,bind,refresh,unavailable,prepar
       button.querySelector('span').textContent='收回小窗';
       view.rehost();
       unbind=bind(win);
-      stage.focus({preventScroll:true});
+      doc.body.focus({preventScroll:true});
       refresh();
     } catch {
       if (win) { restore(win); if (!win.closed) win.close(); }

@@ -1,5 +1,11 @@
 // Test-only instrumentation. The deployed app never imports this file.
 const probe = window.probe = {events:[], frames:[], draws:0, starts:[], peak:0, nonzero:0, states:[]};
+probe.frameRequests=0;
+const requestFrame=window.requestAnimationFrame.bind(window);
+window.requestAnimationFrame=callback=>{
+  probe.frameRequests++;
+  return requestFrame(callback);
+};
 for (const type of ['keydown','keyup','focus','blur','visibilitychange','compositionstart','compositionend']) {
   window.addEventListener(type,e=>{
     if (['focus','blur'].includes(type) && e.target!==window) return;
@@ -51,9 +57,10 @@ for(const api of [WebGLRenderingContext,WebGL2RenderingContext]){
         if(!probe.origin) return;
         const frame={...difference(...area),area,time:Math.round(performance.now())};
         probe.frames.push(frame);
-        if(frame.delta>0 && frame.delta<probe.captureBelow) {
+        const distance=Math.abs(frame.delta-probe.captureBelow/2);
+        if(frame.delta>0 && frame.delta<probe.captureBelow && distance<probe.best) {
           probe.capture=this.canvas.toDataURL();
-          probe.captureBelow=0;
+          probe.best=distance;
         }
       });
     }

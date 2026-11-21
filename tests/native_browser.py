@@ -10,7 +10,7 @@ from pathlib import Path
 def native_chromium(playwright):
     # Playwright-managed contexts normally force document.hasFocus() to true.
     # Attach to the default context without those overrides for PiP handoffs.
-    with tempfile.TemporaryDirectory(prefix='sage-chrome-') as profile:
+    with tempfile.TemporaryDirectory(prefix='sage-chrome-',ignore_cleanup_errors=True) as profile:
         args=[shutil.which('chromium'), '--no-sandbox', '--no-first-run', '--no-default-browser-check',
               '--disable-background-networking', '--disable-dev-shm-usage', '--remote-debugging-port=0',
               '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
@@ -29,6 +29,13 @@ def native_chromium(playwright):
             browser=playwright.chromium.connect_over_cdp('http://127.0.0.1:'+port,no_defaults=True)
             yield browser,browser.contexts[0]
         finally:
-            if browser: browser.close()
-            process.terminate()
-            process.wait(timeout=10)
+            if browser and browser.is_connected():
+                try:
+                    browser.new_browser_cdp_session().send('Browser.close')
+                except Exception:
+                    pass  # DevTools can disconnect before acknowledging close.
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                process.terminate()
+                process.wait(timeout=5)
