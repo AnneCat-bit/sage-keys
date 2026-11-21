@@ -28,7 +28,7 @@ function makeFlat(host) {
 
 async function makeScene(host, onLost) {
   const canvas = document.createElement('canvas');
-  const options = {alpha:true, antialias:true, powerPreference:'low-power', stencil:false};
+  const options = {alpha:true, antialias:true, powerPreference:'low-power', stencil:false, preserveDrawingBuffer:true};
   const context = canvas.getContext('webgl2',options) || canvas.getContext('webgl',options);
   if (!context) throw Error('WebGL unavailable');
   const [THREE, { createKeyboard }] = await Promise.all([
@@ -54,30 +54,63 @@ async function makeScene(host, onLost) {
     onLost();
   }, { once:true });
   host.replaceChildren(renderer.domElement);
-  let previousWidth, previousHeight, previousDpr;
+  const byCode = new Map(keys.map(key=>[key.code,key]));
+  const changed = new Set();
+  const point = new THREE.Vector3();
+  let previousWidth, previousHeight, previousDpr, previousPose;
+  // Keep the static frame and redraw only the projected key bounds during a
+  // press. The scene still resolves depth/occlusion inside the scissor box.
+  function keyScissor(width,height) {
+    let left=width, bottom=height, right=0, top=0;
+    for (const code of changed) {
+      const key=byCode.get(code);
+      for (const x of [key.x-key.w/2,key.x+key.w/2]) {
+        for (const z of [key.z-.55,key.z+.55]) {
+          for (const y of [.35,1.55]) {
+            point.set(x,y,z).project(camera);
+            const px=(point.x+1)*width/2, py=(point.y+1)*height/2;
+            left=Math.min(left,px); right=Math.max(right,px);
+            bottom=Math.min(bottom,py); top=Math.max(top,py);
+          }
+        }
+      }
+    }
+    left=Math.max(0,Math.floor(left)-3); bottom=Math.max(0,Math.floor(bottom)-3);
+    renderer.setScissor(left,bottom,Math.max(0,Math.ceil(right)+3-left),Math.max(0,Math.ceil(top)+3-bottom));
+  }
   return {
-    move: model.setDepth,
+    move(code,value) { model.setDepth(code,value); changed.add(code); },
+    invalidate() { previousPose=null; },
     draw(yaw, pitch, zoom, quality) {
       const width = host.clientWidth, height = host.clientHeight;
       if (!width || !height) return;
-      const dpr = Math.min(devicePixelRatio || 1, quality === 'eco' ? 1.25 : 1.75);
+      const dpr = Math.min(host.ownerDocument.defaultView.devicePixelRatio || 1, quality === 'eco' ? 1.25 : 1.75);
+      const pose = [width,height,dpr,yaw,pitch,zoom].join(',');
+      if (pose===previousPose && !changed.size) return;
       if (width !== previousWidth || height !== previousHeight || dpr !== previousDpr) {
         renderer.setPixelRatio(dpr);
         renderer.setSize(width, height, false);
         previousWidth = width; previousHeight = height; previousDpr = dpr;
       }
       const aspect = width / height;
-      const span = Math.max(9.35, (width < 620 ? 18.5 : 20) / aspect) / zoom;
+      const span = Math.max(9.35, (width < 620 ? 19.5 : 20) / aspect) / zoom;
       camera.left = -span * aspect / 2;
       camera.right = -camera.left;
       camera.top = span / 2;
       camera.bottom = -camera.top;
       camera.updateProjectionMatrix();
-      const radius = 26, centerY = .38;
+      const radius = 26, centerY = width < 620 && host.ownerDocument === document ? -.12 : .38;
       camera.position.set(radius*Math.sin(yaw)*Math.cos(pitch),
         centerY+radius*Math.sin(pitch),radius*Math.cos(yaw)*Math.cos(pitch));
       camera.lookAt(0, centerY, 0);
+      if (pose===previousPose) {
+        keyScissor(width,height);
+        renderer.setScissorTest(true);
+      }
       renderer.render(scene, camera);
+      renderer.setScissorTest(false);
+      previousPose=pose;
+      changed.clear();
     }
   };
 }
@@ -87,14 +120,19 @@ export function createView(host, quality, onChange) {
   const pressed = new Set(), unpainted = new Set(), moving = new Map(), depths = new Map();
   const touches = new Map();
   let backend, flat = false, yaw = preset.yaw, pitch = preset.pitch, zoom = 1, view = 'angle';
-  let raf = 0, last = -Infinity, active = !document.hidden && document.hasFocus();
+  let surface=host.ownerDocument.defaultView;
+  let raf=0, last=-Infinity, active=!document.hidden && document.hasFocus();
+  let observer;
+  function drawVisible() {
+    if (backend && !surface.document.hidden) backend.draw(yaw,pitch,zoom,quality);
+  }
   function notify() { onChange({ flat, zoom, view, active }); }
   function frame(now) {
     raf = 0;
-    if (!backend || !active || document.hidden) return;
+    if (!backend || !active || surface.document.hidden) return;
     const elapsed = now-last;
     const period = quality === 'eco' ? 1000/30 : 1000/60;
-    if (elapsed < period-.6) { raf = requestAnimationFrame(frame); return; }
+    if (elapsed < period-.6) { raf = surface.requestAnimationFrame(frame); return; }
     for (const [code, released] of moving) {
       if (unpainted.has(code)) { moving.set(code, now); continue; }
       const depth = Math.max(0, 1-(now-released)/105)**2;
@@ -105,10 +143,10 @@ export function createView(host, quality, onChange) {
     backend.draw(yaw, pitch, zoom, quality);
     unpainted.clear();
     last = now;
-    if (moving.size) raf = requestAnimationFrame(frame);
+    if (moving.size) raf = surface.requestAnimationFrame(frame);
   }
   function requestDraw() {
-    if (backend && active && !document.hidden && !raf) raf = requestAnimationFrame(frame);
+    if (backend && active && !surface.document.hidden && !raf) raf = surface.requestAnimationFrame(frame);
   }
   function fallback() {
     flat = true;
@@ -118,12 +156,14 @@ export function createView(host, quality, onChange) {
     notify(); requestDraw();
   }
   function setActive(value) {
+    if (active === value) return;
     active = value;
     if (active) { last = -Infinity; requestDraw(); }
     else {
-      if (raf) cancelAnimationFrame(raf);
+      if (raf) surface.cancelAnimationFrame(raf);
       raf = 0;
       for (const code of depths.keys()) backend?.move(code, 0);
+      if (depths.size) drawVisible();
       pressed.clear(); unpainted.clear(); moving.clear(); depths.clear(); touches.clear();
       host.classList.remove('dragging');
     }
@@ -171,12 +211,27 @@ export function createView(host, quality, onChange) {
     const factor = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? host.clientHeight : 1;
     setZoom(zoom*Math.exp(-clamp(e.deltaY*factor,-400,400)*.0014));
   }, {passive:false});
-  new ResizeObserver(requestDraw).observe(host);
+  function refreshSize() {
+    if (active) requestDraw(); else drawVisible();
+  }
+  function rehost() {
+    observer?.disconnect();
+    if (raf) surface.cancelAnimationFrame(raf);
+    raf=0; last=-Infinity;
+    for (const code of depths.keys()) backend?.move(code,0);
+    depths.clear(); pressed.clear(); moving.clear(); unpainted.clear(); touches.clear();
+    surface=host.ownerDocument.defaultView;
+    backend?.invalidate?.();
+    observer=new surface.ResizeObserver(refreshSize);
+    observer.observe(host);
+    refreshSize();
+  }
+  rehost();
   makeScene(host, fallback).then(scene => {
     backend = scene;
     for (const [code,depth] of depths) backend.move(code,depth);
     // Render the initial static pose even in an unfocused visible preview.
-    if (!document.hidden && !active) backend.draw(yaw,pitch,zoom,quality);
+    if (!active) drawVisible();
     notify(); requestDraw();
   }).catch(fallback);
   return {
@@ -188,7 +243,7 @@ export function createView(host, quality, onChange) {
         backend?.move(code,1);
       } else {
         if (!pressed.delete(code)) return false;
-        moving.set(code,performance.now());
+        moving.set(code,surface.performance.now());
       }
       requestDraw();
       return true;
@@ -196,7 +251,7 @@ export function createView(host, quality, onChange) {
     releaseChord() {
       for (const code of pressed) if (!/^(Meta|Shift|Alt|Control)/.test(code)) this.key(code,false);
     },
-    selectView, setZoom, setActive,
+    selectView, setZoom, setActive, rehost, refreshSize,
     adjustZoom(factor) { setZoom(Math.round((zoom+factor)*100)/100); },
     reset() { setZoom(1); selectView('angle'); },
     setQuality(value) { quality = value; requestDraw(); }

@@ -13,6 +13,7 @@
 </head>
 <body>
 <svg class="symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <symbol id="i-float" viewBox="0 0 24 24"><path d="M20 10V5H3v13h7"/><rect x="12" y="12" width="10" height="8" rx="1.5"/></symbol>
   <symbol id="i-volume" viewBox="0 0 24 24"><path d="m11 5-5 4H3v6h3l5 4zM15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></symbol>
   <symbol id="i-mute" viewBox="0 0 24 24"><path d="m11 5-5 4H3v6h3l5 4zm5 4 5 6m0-6-5 6"/></symbol>
   <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6C8 4 5 4 2 5v14c4-1 7-1 10 1 3-2 6-2 10-1V5c-3-1-6-1-10 1Zm0 0v14"/></symbol>
@@ -46,15 +47,17 @@
 <main>
   <div class="intro">
     <div><h1 lang="en">Typing <em>Studio.</em></h1><p>一把虛擬機械鍵盤，陪你寫下每一個字。</p></div>
+    <div class="display-controls"><button id="float-mode" class="float-mode" aria-pressed="false"><svg class="icon"><use href="#i-float"/></svg><span>懸浮模式</span></button>
     <div class="view-switch" role="group" aria-label="鍵盤視角">
       <button id="angle" aria-pressed="true"><svg class="icon"><use href="#i-cube"/></svg>立體視角</button>
       <button id="top" aria-pressed="false"><svg class="icon"><use href="#i-top"/></svg>俯視</button>
-    </div>
+    </div></div>
   </div>
   <section class="stage" aria-label="互動鍵盤展示">
     <div class="stage-sheet" aria-hidden="true"></div>
     <div class="stage-top"><span class="stage-label"><svg class="icon"><use href="#i-cube"/></svg><b id="model-mode" lang="en">MODEL VIEW</b></span><span class="live"><i></i><span id="live-state">互動已就緒</span></span></div>
     <div id="viewport" role="img" aria-label="可旋轉的 Sage 75 立體鍵盤，拖曳旋轉或使用視角與縮放按鈕"></div>
+    <div id="float-placeholder" hidden><svg class="icon"><use href="#i-float"/></svg><p>鍵盤正在懸浮小窗顯示</p><button id="return-here">收回鍵盤</button></div>
     <div class="stage-bottom">
       <div class="model-caption"><div class="name-line"><h2 lang="en">Sage 75</h2><span class="swatches" aria-label="松針綠、鼠尾草綠、奶油白、霧銀色"><i></i><i></i><i></i><i></i></span></div><p>鼠尾草綠 <span>/</span> 75% Mac 配列</p></div>
       <div class="view-tools" role="group" aria-label="視角控制">
@@ -82,12 +85,21 @@
 <dialog id="info"><div class="dialog-head"><img src="./assets/mark.svg" alt="" width="31" height="31"><button class="close" autofocus aria-label="關閉"><svg class="icon"><use href="#i-close"/></svg></button></div><h2 id="info-title"></h2><div id="info-body"></div></dialog>
 <template id="guide">
   <p>點選書寫區後即可輸入中英文。使用倉頡、速成或拼音時，照常選字、按空格或 Enter 確認。</p>
-  <dl><dt>調整視角</dt><dd>在模型上拖曳以旋轉，滾動或雙指捏合以縮放。也可用視角按鈕切換立體、俯視或重設。</dd><dt>聆聽鍵盤</dt><dd>選擇一種錄音，再按播放鍵試聽。右上角喇叭可靜音，音量可獨立調整。</dd><dt>省電與隱私</dt><dd>模型只在變動時繪製，切換分頁或離開視窗即暫停。文字只存在目前頁面，重新整理會清空。僅音色、音量、靜音及畫質偏好保存在瀏覽器。</dd></dl>
+  <dl><dt>調整視角</dt><dd>在模型上拖曳以旋轉，滾動或雙指捏合以縮放。也可用視角按鈕切換立體、俯視或重設。</dd><dt>桌寵懸浮小窗</dt><dd>在支援的桌面 Chrome 點選「懸浮模式」。拖曳原生標題列移動小窗，拉動視窗邊緣縮放。切到其他網站或 App 時，小窗可保持置頂，只有 Sage Keys 收到的按鍵會帶動鍵盤。請保持主分頁開啟。</dd><dt>聆聽鍵盤</dt><dd>選擇一種錄音，再按播放鍵試聽。右上角喇叭可靜音，音量可獨立調整。</dd><dt>省電與隱私</dt><dd>模型只在變動時繪製，切換分頁或離開視窗即暫停。文字只存在目前頁面，重新整理會清空。僅音色、音量、靜音及畫質偏好保存在瀏覽器。</dd></dl>
 </template>
 <template id="credits">
   <p>每種音色取自一段真實鍵盤錄音。三位作者均以 CC0 1.0 公開作品，本站剪輯了共 21 段短取樣。</p>
   <ul class="sources"><li><a href="https://freesound.org/people/Techrul/sounds/815614/" target="_blank" rel="noopener noreferrer">Rainy 75 <span>Techrul ↗</span></a></li><li><a href="https://freesound.org/people/grcekh/sounds/546033/" target="_blank" rel="noopener noreferrer">HHKB Topre <span>grcekh ↗</span></a></li><li><a href="https://freesound.org/people/majod/sounds/400167/" target="_blank" rel="noopener noreferrer">Cherry MX Brown <span>majod ↗</span></a></li></ul>
   <p>Space、Enter 及 Backspace 各有專用片段。原始錄音沒有標記實際敲擊的鍵名。</p>
+</template>
+<template id="float-help"><p>此瀏覽器或目前的內嵌頁面無法開啟 Document Picture-in-Picture。請使用支援此功能的桌面版 Chrome，直接開啟 Sage Keys 的 HTTPS 網址。你也可以繼續使用完整工作室。</p></template>
+<template id="mini-controls">
+  <div class="mini-stage" aria-label="懸浮鍵盤"></div>
+  <div class="mini-bar"><span class="mini-name" lang="en">Sage 75</span><div class="mini-actions">
+    <button data-mini="mute" title="切換靜音"><svg class="icon"><use href="#i-volume"/></svg></button>
+    <button data-mini="eco" title="切換省電模式"><svg class="icon"><use href="#i-leaf"/></svg><span>省電</span></button>
+    <button data-mini="back" aria-label="返回完整工作室" title="返回完整工作室"><svg class="icon"><use href="#i-float"/></svg><span>返回</span></button>
+  </div></div>
 </template>
 </body>
 </html>

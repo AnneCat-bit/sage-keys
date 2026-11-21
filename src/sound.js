@@ -1,5 +1,5 @@
 // Only recorded WAV excerpts are scheduled. Each buffer contains seven slices.
-export function createSound(prefs, report) {
+export function createSound(prefs, report, hasFocus) {
   const files = new Map(), decoded = new Map(), voices = new Set(), lastIndex = new Map();
   const base = new URL('../assets/audio/', import.meta.url);
   let context, master, compressor, slices, indexRequest, idleTimer, generation = 0;
@@ -52,13 +52,16 @@ export function createSound(prefs, report) {
     if (context?.state === 'running') context.suspend().catch(()=>{});
   }
   async function play(code, audition=false) {
-    if (prefs.muted || prefs.volume === 0 || document.hidden || !document.hasFocus()) return;
+    if (prefs.muted || prefs.volume === 0 || !hasFocus()) return;
     const tone = prefs.tone, current = generation, time = performance.now();
     try {
       open();
       clearTimeout(idleTimer);
       const [,,buffer] = await Promise.all([context.resume(),loadIndex(),decode(tone)]);
-      if (current !== generation || tone !== prefs.tone || prefs.muted || document.hidden || !document.hasFocus()) return;
+      if (current !== generation || tone !== prefs.tone || prefs.muted || !hasFocus()) {
+        if ((prefs.muted || !hasFocus()) && context.state==='running') context.suspend().catch(()=>{});
+        return;
+      }
       clearTimeout(idleTimer);
       idleTimer = setTimeout(()=>{if(context.state==='running') context.suspend().catch(()=>{});}, 1200);
       if (!audition && performance.now()-time > 160) return;
