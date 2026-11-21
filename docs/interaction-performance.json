@@ -1,0 +1,384 @@
+{
+  "before": {
+    "commit": "562c8c11f731ddaeb437ff101087b99a6e2f4e1b",
+    "browser": "156.0.8078.79",
+    "viewport": [
+      1280,
+      800
+    ],
+    "dpr": 1,
+    "url": "https://annecat-bit.github.io/sage-keys/",
+    "rows": [
+      {
+        "scenario": "blank browser",
+        "seconds": 8.04,
+        "keystrokes": 0,
+        "cpu_one_core_percent": 1.24,
+        "browser_pss_mib": 211.3,
+        "js_heap_mib": 1.21,
+        "draw_calls": 0,
+        "frames": 0,
+        "fps": 0.0
+      },
+      {
+        "scenario": "eco idle",
+        "seconds": 8.02,
+        "keystrokes": 0,
+        "cpu_one_core_percent": 0.87,
+        "browser_pss_mib": 393.4,
+        "js_heap_mib": 8.98,
+        "draw_calls": 0,
+        "frames": 0,
+        "fps": 0.0
+      },
+      {
+        "scenario": "eco typing with sound",
+        "seconds": 8.03,
+        "keystrokes": 64,
+        "cpu_one_core_percent": 253.9,
+        "browser_pss_mib": 380.6,
+        "js_heap_mib": 4.88,
+        "draw_calls": 1175,
+        "frames": 235,
+        "fps": 29.28
+      },
+      {
+        "scenario": "standard typing with sound",
+        "seconds": 8.03,
+        "keystrokes": 64,
+        "cpu_one_core_percent": 375.47,
+        "browser_pss_mib": 385.3,
+        "js_heap_mib": 5.25,
+        "draw_calls": 2130,
+        "frames": 426,
+        "fps": 53.05
+      },
+      {
+        "scenario": "settled after typing",
+        "seconds": 8.03,
+        "keystrokes": 0,
+        "cpu_one_core_percent": 7.6,
+        "browser_pss_mib": 384.1,
+        "js_heap_mib": 5.25,
+        "draw_calls": 0,
+        "frames": 0,
+        "fps": 0.0
+      },
+      {
+        "scenario": "eco PiP idle",
+        "seconds": 8.03,
+        "keystrokes": 0,
+        "cpu_one_core_percent": 1.37,
+        "browser_pss_mib": 380.3,
+        "js_heap_mib": 6.55,
+        "draw_calls": 0,
+        "frames": 0,
+        "fps": 0.0
+      },
+      {
+        "scenario": "eco PiP typing with sound",
+        "seconds": 8.02,
+        "keystrokes": 64,
+        "cpu_one_core_percent": 95.84,
+        "browser_pss_mib": 377.2,
+        "js_heap_mib": 5.37,
+        "draw_calls": 1205,
+        "frames": 241,
+        "fps": 30.04
+      },
+      {
+        "scenario": "eco PiP settled",
+        "seconds": 8.13,
+        "keystrokes": 0,
+        "cpu_one_core_percent": 1.48,
+        "browser_pss_mib": 375.3,
+        "js_heap_mib": 5.38,
+        "draw_calls": 0,
+        "frames": 0,
+        "fps": 0.0
+      }
+    ],
+    "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+    "canvas": [
+      1150,
+      414
+    ],
+    "pip_size": [
+      400,
+      250
+    ]
+  },
+  "after": {
+    "commit": "195704744d20050ccae84a783c34f1ebfcbded14",
+    "browser": "156.0.8078.79",
+    "viewport": [
+      1280,
+      800
+    ],
+    "dpr": 1,
+    "url": "https://annecat-bit.github.io/sage-keys/",
+    "rows": [
+      {
+        "scenario": "blank browser",
+        "seconds": 8.02,
+        "keystrokes": 0,
+        "cpu_one_core_percent": 2.12,
+        "browser_pss_mib": 262.4,
+        "js_heap_mib": 1.23,
+        "draw_calls": 0,
+        "frames": 0,
+        "fps": 0.0
+      },
+      {
+        "scenario": "eco idle",
+        "seconds": 8.02,
+        "keystrokes": 0,
+        "cpu_one_core_percent": 0.87,
+        "browser_pss_mib": 447.9,
+        "js_heap_mib": 9.15,
+        "draw_calls": 0,
+        "frames": 0,
+        "fps": 0.0
+      },
+      {
+        "scenario": "eco typing with sound",
+        "seconds": 8.03,
+        "keystrokes": 64,
+        "cpu_one_core_percent": 252.58,
+        "browser_pss_mib": 435.4,
+        "js_heap_mib": 5.02,
+        "draw_calls": 1200,
+        "frames": 240,
+        "fps": 29.91
+      },
+      {
+        "scenario": "standard typing with sound",
+        "seconds": 8.02,
+        "keystrokes": 64,
+        "cpu_one_core_percent": 377.57,
+        "browser_pss_mib": 440.9,
+        "js_heap_mib": 4.91,
+        "draw_calls": 2285,
+        "frames": 457,
+        "fps": 56.95
+      },
+      {
+        "scenario": "settled after typing",
+        "seconds": 8.02,
+        "keystrokes": 0,
+        "cpu_one_core_percent": 0.5,
+        "browser_pss_mib": 439.8,
+        "js_heap_mib": 4.92,
+        "draw_calls": 0,
+        "frames": 0,
+        "fps": 0.0
+      },
+      {
+        "scenario": "eco PiP idle",
+        "seconds": 8.02,
+        "keystrokes": 0,
+        "cpu_one_core_percent": 1.25,
+        "browser_pss_mib": 436.6,
+        "js_heap_mib": 6.26,
+        "draw_calls": 0,
+        "frames": 0,
+        "fps": 0.0
+      },
+      {
+        "scenario": "eco PiP typing with sound",
+        "seconds": 8.02,
+        "keystrokes": 64,
+        "cpu_one_core_percent": 95.68,
+        "browser_pss_mib": 434.7,
+        "js_heap_mib": 5.96,
+        "draw_calls": 1180,
+        "frames": 236,
+        "fps": 29.44
+      },
+      {
+        "scenario": "eco PiP settled",
+        "seconds": 8.02,
+        "keystrokes": 0,
+        "cpu_one_core_percent": 0.37,
+        "browser_pss_mib": 431.9,
+        "js_heap_mib": 5.98,
+        "draw_calls": 0,
+        "frames": 0,
+        "fps": 0.0
+      }
+    ],
+    "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+    "canvas": [
+      1150,
+      414
+    ],
+    "pip_size": [
+      400,
+      250
+    ]
+  },
+  "previous_measurement": {
+    "commit": "090eb77f4e4106ef4593fca123962fc070357224",
+    "browser": "156.0.8078.79",
+    "viewport": [
+      1280,
+      800
+    ],
+    "dpr": 1,
+    "url": "https://annecat-bit.github.io/sage-keys/",
+    "rows": [
+      {
+        "scenario": "blank browser",
+        "seconds": 8.02,
+        "keystrokes": 0,
+        "cpu_one_core_percent": 1.25,
+        "browser_pss_mib": 221.7,
+        "js_heap_mib": 1.21,
+        "draw_calls": 0,
+        "frames": 0,
+        "fps": 0.0
+      },
+      {
+        "scenario": "eco idle",
+        "seconds": 8.02,
+        "keystrokes": 0,
+        "cpu_one_core_percent": 1.75,
+        "browser_pss_mib": 401.9,
+        "js_heap_mib": 9.33,
+        "draw_calls": 0,
+        "frames": 0,
+        "fps": 0.0
+      },
+      {
+        "scenario": "eco typing with sound",
+        "seconds": 8.02,
+        "keystrokes": 64,
+        "cpu_one_core_percent": 245.16,
+        "browser_pss_mib": 388.0,
+        "js_heap_mib": 4.94,
+        "draw_calls": 1190,
+        "frames": 238,
+        "fps": 29.66
+      },
+      {
+        "scenario": "standard typing with sound",
+        "seconds": 8.03,
+        "keystrokes": 64,
+        "cpu_one_core_percent": 376.62,
+        "browser_pss_mib": 395.3,
+        "js_heap_mib": 4.96,
+        "draw_calls": 2335,
+        "frames": 467,
+        "fps": 58.14
+      },
+      {
+        "scenario": "settled after typing",
+        "seconds": 8.02,
+        "keystrokes": 0,
+        "cpu_one_core_percent": 0.62,
+        "browser_pss_mib": 394.2,
+        "js_heap_mib": 4.96,
+        "draw_calls": 0,
+        "frames": 0,
+        "fps": 0.0
+      },
+      {
+        "scenario": "eco PiP idle",
+        "seconds": 8.02,
+        "keystrokes": 0,
+        "cpu_one_core_percent": 0.75,
+        "browser_pss_mib": 390.9,
+        "js_heap_mib": 6.26,
+        "draw_calls": 0,
+        "frames": 0,
+        "fps": 0.0
+      },
+      {
+        "scenario": "eco PiP typing with sound",
+        "seconds": 8.02,
+        "keystrokes": 64,
+        "cpu_one_core_percent": 92.03,
+        "browser_pss_mib": 380.5,
+        "js_heap_mib": 5.59,
+        "draw_calls": 1205,
+        "frames": 241,
+        "fps": 30.05
+      },
+      {
+        "scenario": "eco PiP settled",
+        "seconds": 8.02,
+        "keystrokes": 0,
+        "cpu_one_core_percent": 0.62,
+        "browser_pss_mib": 376.4,
+        "js_heap_mib": 5.6,
+        "draw_calls": 0,
+        "frames": 0,
+        "fps": 0.0
+      }
+    ],
+    "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+    "canvas": [
+      1150,
+      414
+    ],
+    "pip_size": [
+      400,
+      250
+    ]
+  },
+  "focus_comparison": {
+    "method": "Fresh Chromium checkouts with 400 × 250 PiP. Warm with 10 keys, wait 1.6 s, then alternate A/S eight times per second for six seconds. CPU is normalized to one core.",
+    "body_commit": "090eb77f4e4106ef4593fca123962fc070357224",
+    "before_commit": "562c8c11f731ddaeb437ff101087b99a6e2f4e1b",
+    "runs": [
+      {
+        "sources": 48,
+        "process_delta": {
+          "browser": 1.3,
+          "renderer": 8.3,
+          "GPU": 81.8,
+          "network.mojom.NetworkService": 0.0,
+          "storage.mojom.StorageService": 0.0,
+          "audio.mojom.AudioService": 0.5
+        },
+        "revision": "body",
+        "seconds": 6.006,
+        "strokes": 48,
+        "cpu": 91.75,
+        "frames": 181
+      },
+      {
+        "sources": 48,
+        "process_delta": {
+          "browser": 2.7,
+          "renderer": 8.7,
+          "GPU": 85.2,
+          "network.mojom.NetworkService": 0.2,
+          "storage.mojom.StorageService": 0.0,
+          "audio.mojom.AudioService": 0.7
+        },
+        "revision": "before",
+        "seconds": 6.007,
+        "strokes": 48,
+        "cpu": 97.23,
+        "frames": 181
+      },
+      {
+        "sources": 48,
+        "process_delta": {
+          "browser": 1.8,
+          "renderer": 8.2,
+          "GPU": 81.9,
+          "network.mojom.NetworkService": 0.0,
+          "storage.mojom.StorageService": 0.0,
+          "audio.mojom.AudioService": 0.8
+        },
+        "revision": "body",
+        "seconds": 6.004,
+        "strokes": 48,
+        "cpu": 92.61,
+        "frames": 181
+      }
+    ]
+  }
+}

@@ -1,5 +1,7 @@
 # Sage Keys 回歸與效能報告
 
+俯視鍵帽、懸浮焦點、混音輸出與省電切換的最新驗收，以及同環境的修復前後量測，見[互動修復實測](INTERACTION-REPAIR.md)。以下保留懸浮模式首次上線時的結果。
+
 2026 年 11 月 21 日於 Codex 雲端完成。執行版本的應用程式提交為 [facd0e4](https://github.com/AnneCat-bit/sage-keys/commit/facd0e44317066ff3a06b253d76651f3b522a24f)。測試對象為正式 [GitHub Pages 工作室](https://annecat-bit.github.io/sage-keys/)。
 
 ## 正式站回歸結果

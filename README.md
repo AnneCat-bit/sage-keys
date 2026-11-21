@@ -2,7 +2,7 @@
 
 Sage Keys 是免費的 3D 機械鍵盤打字工作室。瀏覽器會即時建立一把 82 鍵的 Sage 75，並以錄製的機械鍵盤聲回應敲擊。桌面版 Chrome 可把同一把鍵盤移到置頂小窗。打開網站即可使用。
 
-**[開啟 Sage Keys](https://annecat-bit.github.io/sage-keys/)** · [測試及效能報告](docs/TESTING.md) · [完整錄音紀錄](docs/AUDIO.md)
+**[開啟 Sage Keys](https://annecat-bit.github.io/sage-keys/)** · [最新互動與效能實測](docs/INTERACTION-REPAIR.md) · [原版回歸報告](docs/TESTING.md) · [完整錄音紀錄](docs/AUDIO.md)
 
 ![Sage Keys 正式網站主畫面](docs/studio.png)
 
@@ -33,7 +33,7 @@ Sage Keys 是免費的 3D 機械鍵盤打字工作室。瀏覽器會即時建立
 
 - Chrome、瀏覽器設定或內嵌環境不支援 Document PiP 時，「懸浮模式」會顯示提示。桌面瀏覽器原生控制列的外觀隨平台不同。
 - WebGL 無法建立或 context 遺失時，工作室會改用可回應按鍵的二維鍵盤，保留書寫、音效和縮放。二維模式固定俯視。
-- 軟體繪圖可造成明顯 CPU 負載。雲端 SwiftShader 實測、記憶體口徑及平台限制均列於[效能報告](docs/TESTING.md)。沒有 MacBook 耗電、風扇或溫度的實機測量。
+- 軟體繪圖可造成明顯 CPU 負載。雲端 SwiftShader 實測、記憶體口徑及平台限制均列於[效能報告](docs/INTERACTION-REPAIR.md)。沒有 MacBook 耗電、風扇或溫度的實機測量。
 - 雲端已測 Chromium 的繁中組字、提交與取消。macOS 的倉頡、速成、拼音候選視窗以及 Safari 原生輸入體驗仍需在實機逐項驗證。系統保留鍵、部分 Fn/媒體鍵和虛擬鍵盤可能不提供實體鍵碼。
 - 錄音作者未逐鍵標註 Space、Enter、Backspace。第一版未收錄環境雨聲。
 

@@ -229,7 +229,7 @@ with sync_playwright() as pw:
     assert page.locator('.fallback-board .is-down').count()==1
     page.evaluate('''() => {
       const cap=document.querySelector('.fallback-board .is-down');
-      document.addEventListener('keyup',()=>{window.releaseAt=performance.now();},{once:true});
+      document.addEventListener('keyup',()=>{window.releaseAt=performance.now();},{once:true,capture:true});
       const observer=new MutationObserver(()=>{
         if (!cap.classList.contains('is-down')) {
           window.releaseMs=performance.now()-window.releaseAt;
