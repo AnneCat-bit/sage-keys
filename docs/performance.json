@@ -1,0 +1,108 @@
+{
+  "browser": "156.0.8078.79",
+  "viewport": [
+    1280,
+    800
+  ],
+  "dpr": 1,
+  "url": "https://annecat-bit.github.io/sage-keys/",
+  "rows": [
+    {
+      "scenario": "blank browser",
+      "seconds": 8.02,
+      "keystrokes": 0,
+      "cpu_one_core_percent": 1.37,
+      "browser_pss_mib": 211.3,
+      "js_heap_mib": 1.27,
+      "draw_calls": 0,
+      "frames": 0,
+      "fps": 0.0
+    },
+    {
+      "scenario": "eco idle",
+      "seconds": 8.02,
+      "keystrokes": 0,
+      "cpu_one_core_percent": 0.62,
+      "browser_pss_mib": 409.6,
+      "js_heap_mib": 8.89,
+      "draw_calls": 0,
+      "frames": 0,
+      "fps": 0.0
+    },
+    {
+      "scenario": "eco typing with sound",
+      "seconds": 8.02,
+      "keystrokes": 64,
+      "cpu_one_core_percent": 292.55,
+      "browser_pss_mib": 388.9,
+      "js_heap_mib": 4.73,
+      "draw_calls": 1145,
+      "frames": 229,
+      "fps": 28.56
+    },
+    {
+      "scenario": "standard typing with sound",
+      "seconds": 8.02,
+      "keystrokes": 64,
+      "cpu_one_core_percent": 385.34,
+      "browser_pss_mib": 393.8,
+      "js_heap_mib": 5.18,
+      "draw_calls": 2165,
+      "frames": 433,
+      "fps": 53.96
+    },
+    {
+      "scenario": "settled after typing",
+      "seconds": 8.02,
+      "keystrokes": 0,
+      "cpu_one_core_percent": 0.5,
+      "browser_pss_mib": 392.7,
+      "js_heap_mib": 5.18,
+      "draw_calls": 0,
+      "frames": 0,
+      "fps": 0.0
+    },
+    {
+      "scenario": "eco PiP idle",
+      "seconds": 8.02,
+      "keystrokes": 0,
+      "cpu_one_core_percent": 0.87,
+      "browser_pss_mib": 398.1,
+      "js_heap_mib": 6.49,
+      "draw_calls": 0,
+      "frames": 0,
+      "fps": 0.0
+    },
+    {
+      "scenario": "eco PiP typing with sound",
+      "seconds": 8.02,
+      "keystrokes": 64,
+      "cpu_one_core_percent": 92.78,
+      "browser_pss_mib": 395.3,
+      "js_heap_mib": 5.67,
+      "draw_calls": 1205,
+      "frames": 241,
+      "fps": 30.05
+    },
+    {
+      "scenario": "eco PiP settled",
+      "seconds": 8.02,
+      "keystrokes": 0,
+      "cpu_one_core_percent": 0.25,
+      "browser_pss_mib": 392.4,
+      "js_heap_mib": 5.68,
+      "draw_calls": 0,
+      "frames": 0,
+      "fps": 0.0
+    }
+  ],
+  "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+  "canvas": [
+    1150,
+    414
+  ],
+  "pip_size": [
+    400,
+    250
+  ]
+}

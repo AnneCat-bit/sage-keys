@@ -10,6 +10,8 @@
 | 資產載入 | 先試從 App bundle 的專用資產目錄載入，讀取範圍限該目錄。逐項測試 JavaScript 模組、WebGL 紋理與供 Web Audio 使用的 WAV 請求。若檔案來源限制影響模組或取樣，可研究自訂網域協定，僅對應固定的內建資產清單。使用者的其他檔案與資料夾不在讀取範圍。[限制檔案讀取範圍](https://developer.apple.com/documentation/webkit/wkwebview/loadfileurl%28_%3Aallowingreadaccessto%3A%29) · [WKURLSchemeHandler](https://developer.apple.com/documentation/webkit/wkurlschemehandler) |
 | 浮動鍵盤 | AppKit 的 NSPanel 可作小型顯示窗，nonactivatingPanel 可避免啟用所屬 App。預設面板在所屬 App 離開前景時會隱藏，因此須分別驗證跨 App 可見性、視窗層級與鍵盤焦點。浮窗只顯示鍵盤，編輯偏好由主視窗負責。全螢幕、Spaces、Stage Manager 及多螢幕的行為需實測。[NSPanel](https://developer.apple.com/documentation/appkit/nspanel/isfloatingpanel) · [不啟用 App 的面板](https://developer.apple.com/documentation/appkit/nswindow/stylemask-swift.struct/nonactivatingpanel) |
 
+SwiftUI 可用 `NSViewRepresentable` 管理一個 WKWebView，顯示層在全尺寸與浮窗間共用。若之後提供原生偏好設定，應只傳遞列舉值和數字給本機頁面，避免拼接任意 JavaScript 字串。當 WebView 終止或重載時，清除按鍵狀態並重建單一顯示層。[Apple NSViewRepresentable](https://developer.apple.com/documentation/swiftui/nsviewrepresentable)
+
 ## 輸入範圍與使用者選擇
 
 初次啟動採 App 內互動模式，在自己的視窗內處理鍵盤與輸入法。離線資源載入和顯示浮窗本身無須讀取其他 App 的鍵盤事件。單是把網頁裝入 WKWebView，所屬 App 並不會因此獲得讀取 Word 事件的權限。
@@ -23,6 +25,8 @@
 3. 碰到系統安全輸入或失去可用性時，停止跨 App 回饋並重設鍵帽。Apple 的「終端機」安全輸入會保護其鍵盤輸入。各 App 的密碼欄保護程度及可偵測狀態須分開測試，不能向使用者保證自動識別所有私人欄位。可隨時手動暫停，遇到不確定的狀態應保守停用。[Apple 安全鍵盤輸入說明](https://support.apple.com/zh-hk/guide/terminal/trml109/mac)
 
 ## 按鍵狀態與隱私
+
+App 內可評估 `NSEvent.keyCode`。跨 App 的候選技術為 Core Graphics 唯讀 event tap（`listenOnly`），提取按下、放開與修飾鍵變化及其鍵位欄位，立即映射到允許的模型按鍵。這些是作業系統提供的虛擬鍵碼，ANSI、ISO、JIS 及被重新映射的鍵盤需分別驗證。每次狀態變動只向本地 WebView 傳遞當前按住集合的差異，規格不需存取 `characters`、Unicode 或輸入法結果。[Apple NSEvent.keyCode](https://developer.apple.com/documentation/appkit/nsevent/keycode) · [唯讀 tap](https://developer.apple.com/documentation/coregraphics/cgeventtapoptions/listenonly) · [鍵位欄位](https://developer.apple.com/documentation/coregraphics/cgeventfield/keyboardeventkeycode)
 
 只在記憶體保留目前按下的受支援鍵位及瞬時動畫狀態，放開即移除。向離線繪圖層提供有界的鍵位狀態，不把原始作業系統事件交給網頁。快速連打、左右修飾鍵與同時按鍵要一起驗證。系統快捷鍵、繁體中文候選字處理及文件編輯都交由正在輸入的 App 負責。
 
