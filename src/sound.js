@@ -47,7 +47,7 @@ export function createSound(prefs, report, bundled) {
   function decode(tone) {
     if (!decoded.has(tone)) {
       decoded.set(tone, sampleFile(tone).then(data=>context.decodeAudioData(data.slice(0)))
-        .then(buffer=>{buffers.set(tone,buffer);return buffer;})
+        .then(buffer=>{if (!disposed) buffers.set(tone,buffer);return buffer;})
         .catch(error=>{decoded.delete(tone);throw error;}));
     }
     return decoded.get(tone);

@@ -42,9 +42,11 @@ window.sagePet=Object.freeze({
     if(s.pose!==pose) {pose=s.pose;view.selectView(pose);}
   },
   pause(value) {
+    if(closed) return;
+    held.clear();sound.halt();
+    view.setSuspended(true);
     paused=value;
-    if(paused) {held.clear();sound.halt();}
-    view.setSuspended(value);
+    if(!paused) view.setSuspended(false);
   },
   reset() {
     held.clear();sound.halt();view.setSuspended(true);view.setSuspended(paused);

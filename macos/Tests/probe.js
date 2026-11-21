@@ -35,3 +35,26 @@ AudioBufferSourceNode.prototype.start=function(when,off,len){
 };
 const fetchOriginal=window.fetch;
 window.fetch=(...args)=>{qa.requestsOut++;return fetchOriginal(...args);};
+qa.policyBlocks=0;
+document.addEventListener('securitypolicyviolation',event=>{
+  if(event.effectiveDirective==='connect-src') qa.policyBlocks++;
+});
+const connect=AudioNode.prototype.connect;
+AudioNode.prototype.connect=function(dest,...rest){
+  if(this instanceof DynamicsCompressorNode && dest===this.context.destination){
+    const meter=qa.meter=this.context.createAnalyser();
+    meter.fftSize=32768;
+    connect.call(this,meter);
+    return connect.call(meter,dest,...rest);
+  }
+  return connect.call(this,dest,...rest);
+};
+qa.mixPeak=()=>{
+  if(!qa.meter || !qa.audio) return 0;
+  const a=new Float32Array(qa.meter.fftSize);
+  qa.meter.getFloatTimeDomainData(a);
+  const count=Math.round((qa.audio.currentTime-(qa.mark||0))*qa.audio.sampleRate);
+  let peak=0;
+  for(let i=Math.max(0,a.length-count);i<a.length;i++) peak=Math.max(peak,Math.abs(a[i]));
+  return peak;
+};

@@ -61,12 +61,15 @@ final class PetWeb: NSObject, WKNavigationDelegate {
     }
     func setPaused(_ value:Bool) {
         paused=value
-        clear()
+        invalidateKeys()
         if ready { call("window.sagePet.pause(value)",value) }
     }
-    func clear() {
+    private func invalidateKeys() {
         generation += 1
         latest.removeAll(); delivered.removeAll()
+    }
+    func clear() {
+        invalidateKeys()
         if ready { call("window.sagePet.reset()",false) }
     }
 

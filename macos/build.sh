@@ -9,6 +9,7 @@ cp macos/Info.plist "$app/Contents/"
 cp macos/Web/index.html macos/Web/pet.css style.css "$pet/"
 cp assets/fonts/*.woff2 "$pet/assets/fonts/"
 cp assets/fonts/*LICENSE.txt assets/THREE-LICENSE.txt docs/AUDIO.md "$resources/Licenses/"
+shasum -a 256 assets/three.module.min.js assets/audio/* assets/fonts/*.woff2 src/{model,layout,view,sound}.js > "$resources/Licenses/inputs-sha256.txt"
 node macos/Web/bundle.mjs "$pet/pet.js"
 iconset=macos/build/Sage.iconset
 mkdir -p "$iconset"

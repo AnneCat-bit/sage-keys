@@ -54,7 +54,18 @@ app.delegate=delegate
         let granted=KeyMonitor.authorized, monitor=KeyMonitor()
         // Real preflight and start guard, with no approval prompt or event injection in CI.
         try require(!monitor.start() && !monitor.running,"unarmed start")
-        return ["preflight":granted,"tapInstalled":monitor.running,"safeSession":KeyMonitor.safeSession()]
+        monitor.foregroundAllowed={true}
+        monitor.simulateDenied=true
+        try require(!monitor.start() && !monitor.running,"simulated denial failed")
+        monitor.simulateDenied=false
+        let safe=KeyMonitor.safeSession()
+        // Open and remove before yielding the main run loop. No actual system
+        // input is dispatched, observed or manufactured by this check.
+        let opened=monitor.start()
+        monitor.stop()
+        if granted && safe {try require(opened,"OS tap creation")}
+        return ["preflight":granted,"simulatedDenialBlocked":true,"realTapOpened":opened,
+                "removed":!monitor.running,"safeSession":safe]
     }
     await record("offlineLaunch") {
         try await wait("Boolean(window.sagePet && window.qa)",12000)
@@ -68,6 +79,10 @@ app.delegate=delegate
         delegate.display.setKeys(["KeyA","Space"])
         try await wait("qa.pixels()>30")
         let changed=try await js("qa.pixels()")
+        if let uri=try await js("qa.gl.canvas.toDataURL()") as? String,
+           let payload=uri.split(separator:",").last,let png=Data(base64Encoded:String(payload)) {
+            try png.write(to:evidence.appendingPathComponent("runner-keyboard.png"))
+        }
         delegate.display.setKeys(["KeyA"]);await sleepMS(350)
         let single=try await js("qa.pixels()") as? Int ?? 0
         try require(single>0 && single < (changed as? Int ?? 0),"independent return")
@@ -79,8 +94,10 @@ app.delegate=delegate
         for tone in ["rainy","topre","brown"] {
             delegate.display.configure(muted:false,eco:true,top:false,tone:tone)
             let before=try await js("qa.starts") as? Int ?? 0
+            _=try await js("qa.mark=qa.audio?.currentTime || 0")
             delegate.display.setKeys(["Enter"]);try await wait("qa.starts>\(before) && qa.last.rms>0 && qa.last.state==='running'")
-            tones[tone]=try await js("qa.last");delegate.display.setKeys([]);await sleepMS(160)
+            try await wait("qa.mixPeak()>0.0001")
+            tones[tone]=try await js("({...qa.last,mixedPeak:qa.mixPeak()})");delegate.display.setKeys([]);await sleepMS(160)
         }
         return tones
     }
@@ -95,7 +112,10 @@ app.delegate=delegate
         try require(before==after,"hidden work")
         try menu("顯示");try require(delegate.panel.isVisible && !delegate.display.paused,"show")
         try menu("試敲");try await wait("qa.starts>\(after[1])")
-        return ["normalAndFloating":true,"hiddenDrawDelta":0,"hiddenSoundDelta":0,"resumed":true]
+        NSWorkspace.shared.notificationCenter.post(name:NSWorkspace.willSleepNotification,object:nil)
+        try require(delegate.display.paused,"sleep notification did not pause")
+        try menu("試敲")
+        return ["simulatedSleepPaused":true,"normalAndFloating":true,"hiddenDrawDelta":0,"hiddenSoundDelta":0,"resumed":true]
     }
     await record("idle") {
         delegate.display.setKeys([]);await sleepMS(2000)
@@ -126,11 +146,15 @@ app.delegate=delegate
         return out
     }
     await record("offlinePolicy") {
-        let blocked=try await delegate.display.web.callAsyncJavaScript(
-            "try { await fetch('https://example.invalid/sage-qa'); return false } catch { return true }",arguments:[:],in:nil,in:.page)
+        let blocked:Any = try await withCheckedThrowingContinuation { continuation in
+            delegate.display.web.callAsyncJavaScript(
+                "try { await fetch('https://example.invalid/sage-qa'); return false } catch { return true }",
+                arguments:[:],in:nil,in:.page) { result in continuation.resume(with:result) }
+        }
         try require(blocked as? Bool==true,"external fetch not rejected")
+        try await wait("qa.policyBlocks>0")
         try require((try await js("qa.requestsOut")) as? Int==1,"unexpected app fetch")
-        return ["appFetchCount":0,"externalProbeBlocked":true,"origin":"bundle file"]
+        return ["appFetchCount":0,"externalProbeBlockedByCSP":true,"origin":"bundle file"]
     }
     await record("shutdown") {
         weak var host=delegate.display

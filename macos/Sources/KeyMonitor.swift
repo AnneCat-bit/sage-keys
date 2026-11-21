@@ -10,6 +10,15 @@ final class KeyMonitor {
     private var guardTimer: Timer?
     private var keys = PhysicalKeys()
     var running: Bool { port != nil }
+    #if SAGE_QA
+    var simulateDenied=false
+    #endif
+    private var hasAccess:Bool {
+        #if SAGE_QA
+        if simulateDenied {return false}
+        #endif
+        return Self.authorized
+    }
 
     static func safeSession() -> Bool {
         guard !IsSecureEventInputEnabled(),
@@ -22,7 +31,7 @@ final class KeyMonitor {
 
     func start() -> Bool {
         guard !running else { return true }
-        guard Self.authorized, Self.safeSession(), foregroundAllowed() else { return false }
+        guard hasAccess, Self.safeSession(), foregroundAllowed() else { return false }
         let mask = [CGEventType.keyDown,.keyUp,.flagsChanged].reduce(CGEventMask(0)) { $0 | (1 << $1.rawValue) }
         guard let tap = CGEvent.tapCreate(tap:.cgSessionEventTap, place:.tailAppendEventTap, options:.listenOnly,
             eventsOfInterest:mask, callback:{ _, type, event, ref in
@@ -37,7 +46,7 @@ final class KeyMonitor {
         CGEvent.tapEnable(tap:tap,enable:true)
         let timer=Timer(timeInterval:0.75,repeats:true) { [weak self] _ in
             guard let self=self else { return }
-            if !Self.authorized || !Self.safeSession() || !self.foregroundAllowed() { self.interrupted() }
+            if !self.hasAccess || !Self.safeSession() || !self.foregroundAllowed() { self.interrupted() }
         }
         timer.tolerance=0.15
         RunLoop.main.add(timer,forMode:.common)
@@ -48,7 +57,7 @@ final class KeyMonitor {
     private func receive(_ type: CGEventType, _ event: CGEvent) {
         // Fail closed before inspecting even the physical key field.
         guard running, type != .tapDisabledByTimeout, type != .tapDisabledByUserInput,
-              Self.authorized, Self.safeSession(), foregroundAllowed() else { interrupted(); return }
+              hasAccess, Self.safeSession(), foregroundAllowed() else { interrupted(); return }
         let num=event.getIntegerValueField(.keyboardEventKeycode)
         if keys.apply(type,num,event.flags,repeated:type == .keyDown && event.getIntegerValueField(.keyboardEventAutorepeat) != 0) {
             changed(keys.held)
