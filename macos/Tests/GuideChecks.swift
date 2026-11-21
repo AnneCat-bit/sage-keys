@@ -87,19 +87,26 @@ struct GuideChecks {
             }
             try off()
             try daily.menu("輸入監察授權導覽")
-            guard let content=window?.contentView, let bitmap=content.bitmapImageRepForCachingDisplay(in:content.bounds) else {throw Failure("guide layout")}
-            content.layoutSubtreeIfNeeded()
-            for b in controls(content) {try require(content.bounds.insetBy(dx:-1,dy:-1).contains(b.convert(b.bounds,to:content)), "clipped "+b.title)}
-            content.cacheDisplay(in:content.bounds,to:bitmap)
-            try bitmap.representation(using:.png,properties:[:])?.write(to:evidence.appendingPathComponent("permission-guide.png"))
-            result["checks"]=["first grant needs manual start","decline keeps target out of trust","later retains draft","recheck issues no request","status and fallback branches","Settings foreground from actual guide button","already granted skipped OS request","buttons inside window"]
-            result["size"]=NSStringFromSize(content.bounds.size)
+            try capture("status")
+            try press("尚未開啟或找不到");try capture("settings")
+            try press("開關已開，仍無法同步");try off()
+            try require(PermissionProgress().switchReportedOn && !(try button("確認並開始本次同步")).isEnabled,"reported switch granted access")
+            try press("重新檢查權限");try capture("repair")
+            try press("如何重新加入新版");try capture("replace")
+            try press("檢查安裝與授權")
+            let install=InstallationCheck(previousHash:"previous-fixture")
+            try require(install.cdHash != nil && install.requirement != nil && install.validity == 0 && install.diskMatchesRunning == true && install.previousHashChanged,"running signature")
+            result["installation"]=["version":install.version,"fromApplications":install.inApplications,"signer":install.signer,"checkedRunningVsDisk":true]
+            result["API"]=["preflight":endpoint.accessReading.preflight,"HID":endpoint.accessReading.hid.rawValue,"lastRequest":endpoint.accessReading.request as Any]
+            try press("返回導覽")
+            try require(TrustedApps().entries == initial && !pet.qaMonitoring,"repair changed trust or armed")
+            result["checks"]=["first grant needs manual start","refused request preserved draft","verified real guide Settings button","blue switch reported / APIs denied / no tap","recovery pages","distinct running identity"]
         case "guide-restored":
             try await daily.wait("guide restored") {window != nil}
             try require(endpoint.requests == 0 && PermissionProgress().resumeOnLaunch,"restart asked OS")
             guard case .remembered(let saved) = PermissionProgress().pending else {throw Failure("missing draft after restart")}
             try require(saved.bundleID==calc && !TrustedApps().entries.contains(saved),"premature grant")
-            try press("重新檢查權限");try off()
+            try press("重新檢查權限");try off();try capture("success")
             try press("確認並開始本次同步")
             _ = try await daily.focus("com.apple.finder")
             try await daily.wait("unknown stays off") {pet.qaArmed && !pet.qaMonitoring}
@@ -116,6 +123,13 @@ struct GuideChecks {
             try off()
             try require(TrustedApps().entries==before && window != nil,"identity mismatch granted")
             result["checks"]=["mismatched signed requirement blocked despite granted permission","previous trust intact"]
+        case "guide-accessibility":
+            endpoint.simulateDenied=true;endpoint.missingStatus = .undetermined
+            try daily.menu("輸入監察授權導覽")
+            try press("重新檢查權限");try off()
+            try require(!(try button("確認並開始本次同步")).isEnabled,"unknown status granted")
+            try press("開關已開，仍無法同步")
+            result["usability"] = try await usability()
         default: throw Failure("unexpected guide phase")
         }
         try JSONSerialization.data(withJSONObject:result,options:[.prettyPrinted,.sortedKeys]).write(to:evidence.appendingPathComponent(phase+".json"))

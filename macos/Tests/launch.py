@@ -49,11 +49,22 @@ assert launches[0]["activeAtQuit"] and not launches[1]["activeAtQuit"]
 print("PASS quit and restart", launches)
 
 guide_pids = set()
-for phase in ["guide-draft", "guide-restored", "guide-mismatch"]:
-    subprocess.run(command[:3] + [str(app), "--args", str(evidence), str(probe), phase], check=True, timeout=50)
+for phase in ["guide-draft", "guide-restored", "guide-mismatch", "guide-accessibility"]:
+    with subprocess.Popen(command[:3] + [str(app), "--args", str(evidence), str(probe), phase]) as launch:
+        if phase == "guide-accessibility":
+            deadline = time.monotonic() + 28
+            signal = evidence/"ax-ready"
+            while not signal.exists() and launch.poll() is None and time.monotonic() < deadline:
+                time.sleep(0.1)
+            if signal.exists():
+                ax_result = subprocess.check_output([evidence.parent/"guide-ax", signal.read_text()], timeout=10)
+                temp = evidence/"ax.tmp"
+                temp.write_bytes(ax_result)
+                temp.replace(evidence/"guide-ax.json")
+        launch.wait(timeout=55)
     if (evidence/(phase+".error")).exists():
         raise RuntimeError((evidence/(phase+".error")).read_text())
     result = json.loads((evidence/(phase+".json")).read_text())
     guide_pids.add(result["pid"])
     print("PASS", phase, result, flush=True)
-assert len(guide_pids) == 3
+assert len(guide_pids) == 4
