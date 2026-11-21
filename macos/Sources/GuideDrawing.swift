@@ -45,9 +45,15 @@ final class GuideDrawing: NSView {
         if dots {p.setLineDash([3,5],count:2,phase:0)}
         Self.ink.setStroke();p.stroke()
     }
+    #if SAGE_QA
+    static var qaPaints = 0
+    #endif
     override func draw(_ dirtyRect:NSRect) {
+        #if SAGE_QA
+        Self.qaPaints += 1
+        #endif
         guard let cg=NSGraphicsContext.current?.cgContext else{return}
-        let P = NSPoint.init(x:y:)
+        let P: (CGFloat,CGFloat) -> NSPoint = {NSPoint(x:$0,y:$1)}
         let bg=NSBezierPath(roundedRect:bounds,xRadius:13,yRadius:13)
         mint.withAlphaComponent(0.65).setFill();bg.fill()
         cg.saveGState()

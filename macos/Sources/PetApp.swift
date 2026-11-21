@@ -260,7 +260,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         progress.stage(intent)
         oneTimeTarget = process
         oneTimeSignature = signature
-        if monitor.accessReading.request == nil {monitor.requestListenAccess()}
+        if monitor.accessReading.request != false {monitor.requestListenAccess()}
         guard generation == consentGeneration, !closing else {return false}
         pauseAll("請完成輸入監察設定")
         openGuide()
