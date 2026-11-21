@@ -4,7 +4,11 @@ import WebKit
 struct Failure: Error, CustomStringConvertible { let description:String;init(_ s:String){description=s} }
 func require(_ yes:Bool,_ info:String)throws {if !yes {throw Failure(info)}}
 let app=NSApplication.shared
-let delegate=PetApp()
+let endpoint: DenialFixture = {
+    if KeyMonitor.authorized {return KeyMonitor()}
+    return SilentEndpoint()
+}()
+let delegate = PetApp(monitor: endpoint)
 let evidence=URL(fileURLWithPath:CommandLine.arguments[1])
 let probeURL=URL(fileURLWithPath:CommandLine.arguments[2])
 delegate.testProbe=WKUserScript(source:try String(contentsOf:probeURL),injectionTime:.atDocumentStart,forMainFrameOnly:true)
@@ -135,7 +139,7 @@ app.delegate=delegate
         try require(delegate.panel.isVisible && NSWorkspace.shared.frontmostApplication==target,"panel took focus")
         return ["foreground":"com.apple.TextEdit","visible":true,"foregroundPreserved":true,"sentSystemKeys":0]
     }
-    let daily = DailyChecks(pet: delegate)
+    let daily = DailyChecks(pet: delegate, endpoint: endpoint)
     await record("reopen") {try await daily.reopen()}
     await record("trustAndForeground") {try await daily.follow()}
     await record("protectionTransitions") {try await daily.protection()}
@@ -192,14 +196,14 @@ app.delegate=delegate
         try require(host==nil && web==nil,"native display retained")
         return ["hostReleased":true,"webViewReleased":true,"audioClosed":true,"webglLost":true,"canvases":0]
     }
-    let report:[String:Any]=["system":ProcessInfo.processInfo.operatingSystemVersionString,"tests":results,"failed":failed]
+    let report:[String:Any]=["transitionEndpoint":endpoint is SilentEndpoint ? "silent test double; no OS events" : "CGEvent listenOnly","system":ProcessInfo.processInfo.operatingSystemVersionString,"tests":results,"failed":failed]
     do {try JSONSerialization.data(withJSONObject:report,options:[.prettyPrinted,.sortedKeys]).write(to:evidence.appendingPathComponent("mac-results.json"))}
     catch {print(error);exit(2)}
     exit(failed.isEmpty ? 0:1)
 }
 @MainActor func coldLaunch(_ phase: String) async {
     do {
-        let checks = DailyChecks(pet: delegate)
+        let checks = DailyChecks(pet: delegate, endpoint: endpoint)
         try await checks.wait("cold launch display") {delegate.display?.ready == true}
         let saved = TrustedApps().entries.map { $0.bundleID }
         try require(saved == ["com.apple.TextEdit"], "trusted app missing after process restart")

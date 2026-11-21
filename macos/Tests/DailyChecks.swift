@@ -1,9 +1,32 @@
 import AppKit
 import Carbon
 
+protocol DenialFixture: PhysicalMonitoring {
+    var simulateDenied: Bool { get set }
+}
+extension KeyMonitor: DenialFixture {}
+
+// A state-only endpoint for machines on which macOS denies Input Monitoring.
+// It has no event source, callback invocation, system event API or key data.
+final class SilentEndpoint: DenialFixture {
+    var simulateDenied = false
+    var hasAccess: Bool { !simulateDenied }
+    private(set) var running = false
+    var changed: (Set<String>) -> Void = { _ in }
+    var interrupted: () -> Void = {}
+    var foregroundChanged: () -> Void = {}
+    var foregroundAllowed: () -> Bool = { false }
+    func start() -> Bool {
+        running = hasAccess && KeyMonitor.safeSession() && foregroundAllowed()
+        return running
+    }
+    func stop() { running = false }
+}
+
 @MainActor
 struct DailyChecks {
     let pet: PetApp
+    let endpoint: DenialFixture
     func wait(_ name: String, seconds: Double = 6, until condition: () -> Bool) async throws {
         let end = Date().addingTimeInterval(seconds)
         while !condition() {
@@ -146,19 +169,19 @@ struct DailyChecks {
     func protection() async throws -> [String: Any] {
         let id = "com.apple.TextEdit"
         _ = try await approve(id, remember: true)
-        pet.qaDenyAccess(true)
-        defer { pet.qaDenyAccess(false) }
+        endpoint.simulateDenied = true
+        defer { endpoint.simulateDenied = false }
         try await wait("revoked while attached") {!pet.qaArmed && !pet.qaMonitoring && !pet.qaWatching}
-        pet.qaDenyAccess(false)
+        endpoint.simulateDenied = false
         _ = try await focus(id)
         try require(!pet.qaArmed, "access restoration rearmed")
         try menu("開啟本次")
         try await wait("manual enable") {pet.qaActiveID == id}
         _ = try await focus("com.apple.finder")
         try await wait("standby") {pet.qaArmed && !pet.qaMonitoring}
-        pet.qaDenyAccess(true)
+        endpoint.simulateDenied = true
         try await wait("revoked in standby") {!pet.qaArmed && !pet.qaWatching}
-        pet.qaDenyAccess(false)
+        endpoint.simulateDenied = false
         _ = try await focus(id); try menu("開啟本次")
         try await wait("reattached after manual enable") {pet.qaActiveID == id}
         guard EnableSecureEventInput() == noErr else {throw Failure("EnableSecureEventInput")}

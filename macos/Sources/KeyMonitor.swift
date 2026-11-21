@@ -1,7 +1,18 @@
 import AppKit
 import Carbon
 
-final class KeyMonitor {
+protocol PhysicalMonitoring: AnyObject {
+    var changed: (Set<String>) -> Void { get set }
+    var interrupted: () -> Void { get set }
+    var foregroundChanged: () -> Void { get set }
+    var foregroundAllowed: () -> Bool { get set }
+    var running: Bool { get }
+    var hasAccess: Bool { get }
+    func start() -> Bool
+    func stop()
+}
+
+final class KeyMonitor: PhysicalMonitoring {
     var changed: (Set<String>) -> Void = { _ in }
     var interrupted: () -> Void = {}
     var foregroundAllowed: () -> Bool = { false }

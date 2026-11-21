@@ -18,9 +18,14 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
     var qaActiveID: String? {monitor.running ? verifiedFront?.bundleIdentifier : nil}
     var qaWatching: Bool {foregroundObserver != nil || protectionTimer != nil}
     var qaStatus: String {label.stringValue}
-    func qaDenyAccess(_ deny: Bool) {monitor.simulateDenied = deny}
     #endif
-    private let monitor=KeyMonitor()
+    private let monitor: PhysicalMonitoring
+
+    init(monitor: PhysicalMonitoring = KeyMonitor()) {
+        self.monitor = monitor
+        super.init()
+    }
+
     private var item: NSStatusItem!
     private let label=NSTextField(labelWithString:"載入中")
     private let syncButton=NSButton()
