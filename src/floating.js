@@ -56,10 +56,11 @@ export function createFloating({host,button,view,bind,refresh,unavailable,toggle
       const doc=win.document;
       doc.documentElement.lang='zh-Hant';
       doc.title='Sage 75 · Sage Keys';
-      const style=doc.createElement('link');
-      style.rel='stylesheet';
-      style.href=new URL('../style.css',import.meta.url).href;
-      style.onload=()=>{if(mini===win) view.refreshSize();};
+      // Install already loaded same-origin rules synchronously. The canvas
+      // must have a bounded container before the size observer follows it.
+      const style=doc.createElement('style');
+      const sheet=document.querySelector('link[rel="stylesheet"]').sheet;
+      style.textContent=Array.from(sheet.cssRules,rule=>rule.cssText).join('\n');
       doc.head.append(style);
       doc.body.className='pip-page';
       doc.body.append(document.querySelector('.symbols').cloneNode(true),template.content.cloneNode(true));
