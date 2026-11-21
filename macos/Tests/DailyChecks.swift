@@ -18,6 +18,7 @@ final class SilentEndpoint: DenialFixture {
     }
     private var lastRequest: Bool?
     var grantOnRequest = false
+    var channelAvailable = true
     private(set) var requests = 0
     func requestListenAccess() {requests += 1;if grantOnRequest {simulateDenied = false};lastRequest=hasAccess}
     private(set) var running = false
@@ -26,7 +27,7 @@ final class SilentEndpoint: DenialFixture {
     var foregroundChanged: () -> Void = {}
     var foregroundAllowed: () -> Bool = { false }
     func start() -> Bool {
-        running = hasAccess && KeyMonitor.safeSession() && foregroundAllowed()
+        running = channelAvailable && hasAccess && KeyMonitor.safeSession() && foregroundAllowed()
         return running
     }
     func stop() { running = false }

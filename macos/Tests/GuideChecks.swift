@@ -71,6 +71,19 @@ struct GuideChecks {
             try await daily.wait("already granted, no guide or request") {pet.qaActiveID == editor}
             try require(endpoint.requests == 1 && window == nil, "already granted asked again")
             try daily.menu("立即暫停")
+            endpoint.channelAvailable=false
+            try daily.menu("開啟本次")
+            try await daily.wait("granted but channel failed") {!pet.qaArmed && pet.qaStatus.contains("事件監測未能啟動")}
+            try off();try daily.menu("開啟本次")
+            try await daily.wait("tap failure opens diagnostics") {(try? button("返回導覽")) != nil}
+            try press("稍後再說")
+            endpoint.channelAvailable=true
+            _ = try await daily.focus(editor)
+            try daily.menu("開啟本次")
+            try press("返回導覽");try press("確認並開始本次同步")
+            _ = try await daily.focus(editor)
+            try await daily.wait("manual recovery after tap failure") {pet.qaActiveID == editor}
+            try daily.menu("立即暫停")
             let initial = TrustedApps().entries
             endpoint.simulateDenied=true;endpoint.grantOnRequest=false
             try await consent(calc,remember:true)
@@ -94,7 +107,7 @@ struct GuideChecks {
             try require(PermissionProgress().switchReportedOn && (try? button("確認並開始本次同步"))?.isEnabled != true,"reported switch granted access")
             try press("重新檢查權限");try await capture("repair")
             try press("如何重新加入新版");try await capture("replace")
-            try press("檢查安裝與授權")
+            try press("檢查安裝與授權");try await capture("installation")
             // Launch Services can coalesce identical registrations. The installed-copy
             // check must also find the exact name in either Applications directory.
             let userApps=try FileManager.default.url(for:.applicationDirectory,in:.userDomainMask,appropriateFor:nil,create:true)
@@ -110,7 +123,7 @@ struct GuideChecks {
             result["API"]=["preflight":endpoint.accessReading.preflight,"HID":endpoint.accessReading.hid.rawValue,"lastRequest":endpoint.accessReading.request as Any]
             try press("返回導覽")
             try require(TrustedApps().entries == initial && !pet.qaMonitoring,"repair changed trust or armed")
-            result["checks"]=["first grant needs manual start","refused request preserved draft","verified real guide Settings button","blue switch reported / APIs denied / no tap","recovery pages","distinct running identity"]
+            result["checks"]=["first grant needs manual start","channel failure with valid grant opens diagnostics; recovery needs manual restart","refused request preserved draft","verified real guide Settings button","blue switch reported / APIs denied / no tap","recovery pages","distinct running identity"]
         case "guide-restored":
             try await daily.wait("guide restored") {window != nil}
             try require(endpoint.requests == 0 && PermissionProgress().resumeOnLaunch,"restart asked OS")

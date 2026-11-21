@@ -75,7 +75,9 @@ app.delegate=delegate
         let opened=monitor.start()
         monitor.stop()
         if granted && safe {try require(opened,"OS tap creation")}
-        return ["preflight":granted,"simulatedDenialBlocked":true,"realTapOpened":opened,
+        let observed=monitor.accessReading
+        return ["preflight":granted,"realHIDCheck":observed.hid.rawValue,"realRequestMade":observed.request != nil,
+                "simulatedDenialBlocked":true,"realTapOpened":opened,
                 "removed":!monitor.running,"safeSession":safe]
     }
     await record("offlineLaunch") {

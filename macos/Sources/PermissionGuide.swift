@@ -128,7 +128,7 @@ final class PermissionGuide: NSWindowController, NSWindowDelegate {
     var inspect: () -> InstallationCheck = {InstallationCheck(previousHash:nil)}
 
     init() {
-        let panel=GuidePanel(contentRect:NSRect(x:0,y:0,width:510,height:460),styleMask:[.titled,.closable,.resizable],backing:.buffered,defer:false)
+        let panel=GuidePanel(contentRect:NSRect(x:0,y:0,width:510,height:520),styleMask:[.titled,.closable,.resizable],backing:.buffered,defer:false)
         super.init(window:panel)
         panel.title="Sage Keys · 輸入監察導覽";panel.isReleasedWhenClosed=false;panel.hidesOnDeactivate=false
         panel.contentMinSize=NSSize(width:356,height:295)
