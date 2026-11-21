@@ -42,6 +42,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
     private var oneTimeSignature: TrustedApp?
     private var needsPermissionHelp = false
     private var restoringGuide = true
+    private var selectingTarget = false
     private var consentGeneration = 0
     private var terminationReplyPending = false
     private var syncStatus = "等待已信任 App"
@@ -232,7 +233,9 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         guard item != nil else{return}
         label.stringValue = armed ? syncStatus : ("同步已關閉" + (notice.map { " · " + $0 } ?? ""))
         label.toolTip=label.stringValue + " · " + mode
-        syncButton.title = armed ? "暫停" : ((needsPermissionHelp || progress.pending != nil) ? "授權導覽" : "同步")
+        if armed {syncButton.title = "暫停"}
+        else if selectingTarget {syncButton.title = "選取 App"}
+        else {syncButton.title = needsPermissionHelp || progress.pending != nil ? "授權導覽" : "同步"}
         muteButton.title=prefs.bool(forKey:"muted") ? "開聲":"靜音"
         item.button?.image=NSImage(systemSymbolName:monitor.running ? "keyboard.fill":"keyboard",accessibilityDescription:"Sage Keys")
         item.button?.title=armed ? (monitor.running ? " 同步":" 待命") : ""
@@ -259,6 +262,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
 
     private func clearDraft() {
         progress.clear()
+        selectingTarget = false
         oneTimeTarget = nil
         oneTimeSignature = nil
         needsPermissionHelp = false
@@ -273,6 +277,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
     @objc private func toggleSync() {
         if armed {pauseAll("已暫停");return}
         guard display.ready else {notice="等待鍵盤載入";refresh();return}
+        if selectingTarget {addFront();return}
         if progress.pending != nil {openGuide();return}
         if trust.entries.isEmpty {
             if needsPermissionHelp && !monitor.hasAccess {openGuide()} else {addFront()}
@@ -287,10 +292,20 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
     @objc private func openGuide() {
         guard !closing else {return}
         if armed {pauseAll("已暫停同步")}
+        if progress.pending != nil {progress.resumeNextLaunch(true)}
+        else if !monitor.hasAccess {progress.stage(.help)}
         if guide == nil {
             let view = PermissionGuide()
             view.recheck = { [weak self] in self?.updateGuide() }
             view.finish = { [weak self] in self?.finishGuide() }
+            view.chooseTarget = { [weak self] in
+                guard let self = self else {return}
+                self.clearDraft()
+                self.selectingTarget = true
+                self.show()
+                self.notice = "先點選要同步的 App，再按「選取 App」"
+                self.refresh()
+            }
             view.later = { [weak self] in
                 guard let self = self else {return}
                 self.progress.resumeNextLaunch(false)
@@ -316,7 +331,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
     }
 
     private func updateGuide(_ hint: String = "") {
-        let status = ListenStatus.current(preflight: monitor.hasAccess)
+        let status = monitor.listenStatus
         needsPermissionHelp = status != .granted
         let permission = progress.statusText(status)
         var target: String
@@ -370,6 +385,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
             return
         }
         guard KeyMonitor.safeSession() else {pauseAll("系統安全輸入保護中或工作階段已鎖定");return}
+        selectingTarget = false
         let prior = allowed.filter { !$0.isTerminated }
         pauseAll("等待確認")
         let generation = consentGeneration
@@ -399,10 +415,10 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
     private func approve(_ process: NSRunningApplication, saving: Bool, candidate: TrustedApp?,
                          prior: [NSRunningApplication]) -> Bool {
         guard eligible(process) else {return false}
-        if saving {
-            guard let approval = candidate, let live = SignedProcess(process), live.matches(approval) else {return false}
-            trust.save(approval)
-        }
+        if let identity = candidate {
+            guard SignedProcess(process)?.matches(identity) == true else {return false}
+            if saving {trust.save(identity)}
+        } else if saving {return false}
         allowed = prior.filter { !$0.isTerminated && $0 != process }
         if !saving {allowed.append(process)}
         return true

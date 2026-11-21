@@ -69,6 +69,7 @@ final class PermissionGuide: NSWindowController, NSWindowDelegate {
     let confirm = NSButton()
     var recheck: () -> Void = {}
     var finish: () -> Void = {}
+    var chooseTarget: () -> Void = {}
     var later: () -> Void = {}
     var quitToApply: () -> Void = {}
 
@@ -109,7 +110,7 @@ final class PermissionGuide: NSWindowController, NSWindowDelegate {
             stack.addArrangedSubview(row)
         }
         step("1.circle","打開「私隱與保安」→「輸入監察」（也稱「輸入監控」），開啟 Sage Keys 旁的開關。")
-        step("2.circle","找不到 Sage Keys？按「＋」，加入「應用程式」內的新版。若只有失效舊項目，可先選舊 Sage Keys 按「−」，再加入新版。")
+        step("2.circle","找不到 Sage Keys？按「＋」加入目前這份 App。更新後舊開關仍然無效？可先選舊 Sage Keys 按「−」，再加入新版。")
         step("3.circle","回來按「重新檢查權限」。若系統要求重開，請退出，再從 Finder 開啟同一份 Sage Keys。")
         func button(_ text:String, _ selector:Selector) -> NSButton {
             let b=NSButton(title:text,target:self,action:selector);b.bezelStyle = .rounded;return b
@@ -119,7 +120,7 @@ final class PermissionGuide: NSWindowController, NSWindowDelegate {
         feedback.font = .systemFont(ofSize:12)
         feedback.textColor = .secondaryLabelColor
         stack.addArrangedSubview(feedback)
-        row([button("重新檢查權限",#selector(check)),button("在 Finder 顯示此版本",#selector(reveal))])
+        row([button("重新檢查權限",#selector(check)),button("在 Finder 顯示此版本",#selector(reveal)),button("重新選取 App",#selector(selectTarget))])
         confirm.title="確認並開始本次同步";confirm.target=self;confirm.action = #selector(start);confirm.bezelStyle = .rounded
         row([confirm,button("稍後再說",#selector(deferGuide)),button("退出並保留進度",#selector(quit))])
         let content = NSView()
@@ -158,6 +159,7 @@ final class PermissionGuide: NSWindowController, NSWindowDelegate {
         fit()
     }
     @objc private func reveal(){NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])}
+    @objc private func selectTarget(){chooseTarget()}
     @objc private func check(){recheck()}
     @objc private func start(){finish()}
     @objc private func deferGuide(){later()}

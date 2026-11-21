@@ -11,6 +11,8 @@ extension KeyMonitor: DenialFixture {}
 final class SilentEndpoint: DenialFixture {
     var simulateDenied = false
     var hasAccess: Bool { !simulateDenied }
+    var missingStatus = ListenStatus.denied
+    var listenStatus: ListenStatus {hasAccess ? .granted : missingStatus}
     var grantOnRequest = false
     private(set) var requests = 0
     func requestListenAccess() {requests += 1;if grantOnRequest {simulateDenied = false}}

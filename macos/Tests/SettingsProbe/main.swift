@@ -34,6 +34,7 @@ func visiblePane(_ requested: String) -> (Bool, String) {
 }
 let trusted = AXIsProcessTrusted()
 print("OS", ProcessInfo.processInfo.operatingSystemVersionString, "existing read-only QA AX access:", trusted)
+var failed = false
 for (detail, title) in [(false,"Privacy & Security"),(true,"Input Monitoring")] {
     let delivery = SettingsLinks.open(inputPane: detail)
     let end = Date().addingTimeInterval(12)
@@ -43,5 +44,7 @@ for (detail, title) in [(false,"Privacy & Security"),(true,"Input Monitoring")] 
         if trusted {observed = visiblePane(title)}
     } while trusted && !observed.0 && Date() < end
     let front = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "unknown"
+    if trusted && !observed.0 {failed = true}
     print("expected=\(title) dispatch=\(delivery.rawValue) foreground=\(front) exactPaneVerified=\(observed.0) evidence=\(observed.1)")
 }
+if failed {exit(1)}

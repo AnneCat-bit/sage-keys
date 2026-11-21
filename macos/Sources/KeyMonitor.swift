@@ -8,9 +8,14 @@ protocol PhysicalMonitoring: AnyObject {
     var foregroundAllowed: () -> Bool { get set }
     var running: Bool { get }
     var hasAccess: Bool { get }
+    var listenStatus: ListenStatus { get }
     func requestListenAccess()
     func start() -> Bool
     func stop()
+}
+
+extension PhysicalMonitoring {
+    var listenStatus: ListenStatus {ListenStatus.current(preflight: hasAccess)}
 }
 
 final class KeyMonitor: PhysicalMonitoring {
