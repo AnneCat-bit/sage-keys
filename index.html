@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f8f8f4">
+  <meta name="description" content="Sage Keys 是一個輕量的 3D 機械鍵盤打字工作室，搭配真實鍵盤錄音與私密中英文書寫區。">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Sage Keys — Typing Studio</title>
+  <link rel="icon" href="./assets/mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./src/app.js"></script>
+</head>
+<body>
+<svg class="symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <symbol id="i-volume" viewBox="0 0 24 24"><path d="m11 5-5 4H3v6h3l5 4zM15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></symbol>
+  <symbol id="i-mute" viewBox="0 0 24 24"><path d="m11 5-5 4H3v6h3l5 4zm5 4 5 6m0-6-5 6"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6C8 4 5 4 2 5v14c4-1 7-1 10 1 3-2 6-2 10-1V5c-3-1-6-1-10 1Zm0 0v14"/></symbol>
+  <symbol id="i-headphones" viewBox="0 0 24 24"><path d="M4 14v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="12" width="4.5" height="8" rx="2"/><rect x="16.5" y="12" width="4.5" height="8" rx="2"/></symbol>
+  <symbol id="i-cube" viewBox="0 0 24 24"><path d="m12 3 8.5 4.5v9L12 21l-8.5-4.5v-9zm0 9 8.5-4.5M12 12 3.5 7.5M12 12v9"/></symbol>
+  <symbol id="i-top" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h1m3 0h1m3 0h2M7 12h1m3 0h1m3 0h2M9 15h6"/></symbol>
+  <symbol id="i-rotate" viewBox="0 0 24 24"><path d="M4 11a8 8 0 1 1 2 6M4 5v6h6"/></symbol>
+  <symbol id="i-orbit" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="10" ry="5" transform="rotate(-27 12 12)"/><circle cx="12" cy="12" r="2"/></symbol>
+  <symbol id="i-mouse" viewBox="0 0 24 24"><rect x="5.5" y="2.5" width="13" height="19" rx="6.5"/><path d="M12 6v4"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path d="m4 20 4.8-1 11-11a2.6 2.6 0 0 0-3.7-3.7l-11 11L4 20Zm9.6-13.1 3.6 3.6"/></symbol>
+  <symbol id="i-wave" viewBox="0 0 24 24"><path d="M3 10v4m4-8v12m5-16v20m5-16v12m4-8v4"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 4v3"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M5 18C1 9 10 4 21 3c-1 10-5 18-14 15m-4 3L16 9"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7z"/></symbol>
+</svg>
+<header class="masthead">
+  <div class="mast-inner">
+    <a class="brand" href="./" aria-label="Sage Keys 首頁"><img src="./assets/mark.svg" width="37" height="37" alt="">Sage Keys</a>
+    <nav aria-label="工作室導覽">
+      <button data-dialog="guide"><svg class="icon"><use href="#i-book"/></svg>使用指南</button>
+      <button data-dialog="credits"><svg class="icon"><use href="#i-headphones"/></svg>錄音來源</button>
+      <span class="nav-divider"></span>
+      <button id="sound-toggle" class="audio-toggle" aria-pressed="true"><svg class="icon"><use href="#i-volume"/></svg><span>聲音開啟</span></button>
+    </nav>
+  </div>
+</header>
+<main>
+  <div class="intro">
+    <div><h1 lang="en">Typing <em>Studio.</em></h1><p>一把虛擬機械鍵盤，陪你寫下每一個字。</p></div>
+    <div class="view-switch" role="group" aria-label="鍵盤視角">
+      <button id="angle" aria-pressed="true"><svg class="icon"><use href="#i-cube"/></svg>立體視角</button>
+      <button id="top" aria-pressed="false"><svg class="icon"><use href="#i-top"/></svg>俯視</button>
+    </div>
+  </div>
+  <section class="stage" aria-label="互動鍵盤展示">
+    <div class="stage-sheet" aria-hidden="true"></div>
+    <div class="stage-top"><span class="stage-label"><svg class="icon"><use href="#i-cube"/></svg><b id="model-mode" lang="en">MODEL VIEW</b></span><span class="live"><i></i><span id="live-state">互動已就緒</span></span></div>
+    <div id="viewport" role="img" aria-label="可旋轉的 Sage 75 立體鍵盤，拖曳旋轉或使用視角與縮放按鈕"></div>
+    <div class="stage-bottom">
+      <div class="model-caption"><div class="name-line"><h2 lang="en">Sage 75</h2><span class="swatches" aria-label="松針綠、鼠尾草綠、奶油白、霧銀色"><i></i><i></i><i></i><i></i></span></div><p>鼠尾草綠 <span>/</span> 75% Mac 配列</p></div>
+      <div class="view-tools" role="group" aria-label="視角控制">
+        <button id="zoom-out" aria-label="縮小"><svg class="icon"><use href="#i-minus"/></svg></button><output id="zoom">100%</output><button id="zoom-in" aria-label="放大"><svg class="icon"><use href="#i-plus"/></svg></button><span></span><button id="reset" aria-label="重設視角" title="重設視角"><svg class="icon"><use href="#i-rotate"/></svg></button>
+      </div>
+    </div>
+  </section>
+  <div class="stage-meta"><span><svg class="icon"><use href="#i-orbit"/></svg><span id="gesture">拖曳旋轉</span><i></i><svg class="icon"><use href="#i-mouse"/></svg>滾動縮放</span><label><svg class="icon"><use href="#i-leaf"/></svg><select id="quality" aria-label="畫質"><option value="eco">省電模式</option><option value="standard">標準模式</option></select><svg class="icon chevron"><use href="#i-chevron"/></svg></label></div>
+  <div class="desk">
+    <section class="panel write-panel">
+      <div class="panel-head"><div class="section-title"><span class="icon-tile"><svg class="icon"><use href="#i-pen"/></svg></span><h2>書寫區</h2></div><span class="en-label" lang="en">TYPEPAD</span></div>
+      <label class="sr" for="writing">中英文自由書寫區</label>
+      <textarea id="writing" placeholder="從這裡開始打字…" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" data-gramm="false" data-gramm_editor="false"></textarea>
+      <div class="write-foot"><span><svg class="icon"><use href="#i-lock"/></svg>文字僅留在此分頁</span><span id="ime">支援中文輸入法</span></div>
+    </section>
+    <section class="panel sound-panel">
+      <div class="panel-head"><div class="section-title"><span class="icon-tile"><svg class="icon"><use href="#i-wave"/></svg></span><h2>鍵盤音色</h2></div><span class="en-label" lang="en">SOUND</span></div>
+      <div class="sound-select"><svg class="icon"><use href="#i-headphones"/></svg><select id="tone" aria-label="選擇鍵盤音色"><option value="rainy">Rainy 75</option><option value="topre">HHKB Topre</option><option value="brown">Cherry MX Brown</option></select><svg class="icon chevron"><use href="#i-chevron"/></svg><button id="audition" aria-label="試聽選定音色" title="試聽"><svg class="icon"><use href="#i-play"/></svg></button></div>
+      <div class="volume-label"><label for="volume">音量</label><output id="vol-value" for="volume">55%</output></div>
+      <div class="slider-row"><svg class="icon"><use href="#i-volume"/></svg><input id="volume" type="range" min="0" max="100" value="55" aria-label="音量"></div>
+      <p id="audio-status" class="audio-status" role="status"></p>
+    </section>
+  </div>
+</main>
+<dialog id="info"><div class="dialog-head"><img src="./assets/mark.svg" alt="" width="31" height="31"><button class="close" autofocus aria-label="關閉"><svg class="icon"><use href="#i-close"/></svg></button></div><h2 id="info-title"></h2><div id="info-body"></div></dialog>
+<template id="guide">
+  <p>點選書寫區後即可輸入中英文。使用倉頡、速成或拼音時，照常選字、按空格或 Enter 確認。</p>
+  <dl><dt>調整視角</dt><dd>在模型上拖曳以旋轉，滾動或雙指捏合以縮放。也可用視角按鈕切換立體、俯視或重設。</dd><dt>聆聽鍵盤</dt><dd>選擇一種錄音，再按播放鍵試聽。右上角喇叭可靜音，音量可獨立調整。</dd><dt>省電與隱私</dt><dd>模型只在變動時繪製，切換分頁或離開視窗即暫停。文字只存在目前頁面，重新整理會清空。僅音色、音量、靜音及畫質偏好保存在瀏覽器。</dd></dl>
+</template>
+<template id="credits">
+  <p>每種音色取自一段真實鍵盤錄音。三位作者均以 CC0 1.0 公開作品，本站剪輯了共 21 段短取樣。</p>
+  <ul class="sources"><li><a href="https://freesound.org/people/Techrul/sounds/815614/" target="_blank" rel="noopener noreferrer">Rainy 75 <span>Techrul ↗</span></a></li><li><a href="https://freesound.org/people/grcekh/sounds/546033/" target="_blank" rel="noopener noreferrer">HHKB Topre <span>grcekh ↗</span></a></li><li><a href="https://freesound.org/people/majod/sounds/400167/" target="_blank" rel="noopener noreferrer">Cherry MX Brown <span>majod ↗</span></a></li></ul>
+  <p>Space、Enter 及 Backspace 各有專用片段。原始錄音沒有標記實際敲擊的鍵名。</p>
+</template>
+</body>
+</html>
