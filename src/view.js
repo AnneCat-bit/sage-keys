@@ -54,16 +54,15 @@ async function makeScene(host, onLost) {
     onLost();
   }, { once:true });
   host.replaceChildren(renderer.domElement);
-  const byCode = new Map(keys.map(key=>[key.code,key]));
+  const byCode = new Map(keys.map((key,i)=>[key.code,i]));
   const changed = new Set();
   const point = new THREE.Vector3();
   let previousWidth, previousHeight, previousDpr, previousPose;
   // Keep the static frame and redraw only the projected key bounds during a
   // press. The scene still resolves depth/occlusion inside the scissor box.
-  function keyScissor(width,height) {
+  let footprint=[];
+  function keyBounds(key,width,height) {
     let left=width, bottom=height, right=0, top=0;
-    for (const code of changed) {
-      const key=byCode.get(code);
       for (const x of [key.x-key.w/2,key.x+key.w/2]) {
         for (const z of [key.z-.55,key.z+.55]) {
           for (const y of [.35,1.55]) {
@@ -74,9 +73,7 @@ async function makeScene(host, onLost) {
           }
         }
       }
-    }
-    left=Math.max(0,Math.floor(left)-3); bottom=Math.max(0,Math.floor(bottom)-3);
-    renderer.setScissor(left,bottom,Math.max(0,Math.ceil(right)+3-left),Math.max(0,Math.ceil(top)+3-bottom));
+    return [Math.floor(left)-3,Math.floor(bottom)-3,Math.ceil(right)+3,Math.ceil(top)+3];
   }
   return {
     move(code,value) { model.setDepth(code,value); changed.add(code); },
@@ -104,8 +101,23 @@ async function makeScene(host, onLost) {
         centerY+radius*Math.sin(pitch),radius*Math.cos(yaw)*Math.cos(pitch));
       camera.lookAt(0, centerY, 0);
       if (pose===previousPose) {
-        keyScissor(width,height);
+        const dirty=[...changed].map(code=>footprint[byCode.get(code)]);
+        const l=Math.max(0,Math.min(...dirty.map(box=>box[0])));
+        const b=Math.max(0,Math.min(...dirty.map(box=>box[1])));
+        const r=Math.min(width,Math.max(...dirty.map(box=>box[2])));
+        const t=Math.min(height,Math.max(...dirty.map(box=>box[3])));
+        renderer.setScissor(l,b,Math.max(0,r-l),Math.max(0,t-b));
         renderer.setScissorTest(true);
+        const visible=[];
+        for (let i=0;i<footprint.length;i++) {
+          const [left,bottom,right,top]=footprint[i];
+          if (left<=r && right>=l && bottom<=t && top>=b) visible.push(i);
+        }
+        model.cull(visible);
+      } else {
+        camera.updateMatrixWorld();
+        footprint=keys.map(k=>keyBounds(k,width,height));
+        model.cull(null);
       }
       renderer.render(scene, camera);
       renderer.setScissorTest(false);

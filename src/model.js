@@ -313,14 +313,17 @@ export function createKeyboard() {
   const group = new THREE.Group();
   const shell = new Batch(), fixed = new Batch(), caps = new Batch(), legends = new Batch();
   const {texture,tiles} = makeInk();
-  const moving = new Map();
+  const moving = new Map(), perKey = [];
+  const batches = [fixed,caps,legends];
   housing(shell);
   dialAndFasteners(shell);
   for (const key of keys) {
     const deck = deckHeight - deckTilt * key.z;
+    const starts = batches.map(batch=>batch.indices.length);
     keyHousing(fixed,key,deck);
     const capStart=caps.size, inkStart=legends.size;
     cap(caps,legends,key,tiles.get(key.code),deck);
+    perKey.push(batches.map((batch,i)=>[starts[i],batch.indices.length]));
     moving.set(key.code,{capStart,capEnd:caps.size,inkStart,inkEnd:legends.size,depth:0});
   }
   const shellMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.51,metalness:.17});
@@ -358,5 +361,36 @@ export function createKeyboard() {
     }
     group.clear();
   }
-  return {group,setDepth,width,depth,dispose};
+  // For a partial redraw, submit only the keys whose projected bounds
+  // overlap the scissor. Reuse the index buffer and keep the original order.
+  const parts = group.children.slice(2).map(({geometry}) => {
+    geometry.index.setUsage(THREE.DynamicDrawUsage);
+    return {geometry, original:geometry.index.array.slice()};
+  });
+  let lastSelection=null;
+  function cull(visible) {
+    const signature=visible?.join(',') ?? null;
+    if (signature === lastSelection) return;
+    lastSelection=signature;
+    for (const [part,{geometry,original}] of parts.entries()) {
+      const index=geometry.index;
+      let count=0;
+      if (visible) {
+        for (const key of visible) {
+          const [start,end]=perKey[key][part];
+          index.array.set(original.subarray(start,end),count);
+          count+=end-start;
+        }
+      } else {
+        index.array.set(original);
+        count=original.length;
+      }
+      geometry.setDrawRange(0,count);
+      if (count) {
+        index.addUpdateRange(0,count);
+        index.needsUpdate=true;
+      }
+    }
+  }
+  return {group,setDepth,width,depth,dispose,cull};
 }
