@@ -349,7 +349,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
             target = canConfirm ? "已保存的信任清單仍在。確認後才會開始本次同步。" : "完成後切回目標 App，再從選單允許該 App。"
         }
         guide?.update(status:permission, target:"跨 App 鍵帽和錄音需要系統允許讀取物理鍵位。\n" + target,
-                      canStart:status == .granted && canConfirm && display.ready, hint:hint)
+                      authorized:status == .granted, canStart:status == .granted && canConfirm && display.ready, hint:hint)
         refresh()
     }
 

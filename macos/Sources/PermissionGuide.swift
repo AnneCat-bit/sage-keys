@@ -77,7 +77,8 @@ final class PermissionGuide: NSWindowController, NSWindowDelegate {
     private let status = NSTextField(wrappingLabelWithString: "")
     private let target = NSTextField(wrappingLabelWithString: "")
     private let feedback = NSTextField(wrappingLabelWithString: "")
-    let confirm = NSButton()
+    private let confirm = NSButton()
+    private var instructionRows = [NSView]()
     var recheck: () -> Void = {}
     var finish: () -> Void = {}
     var chooseTarget: () -> Void = {}
@@ -119,6 +120,7 @@ final class PermissionGuide: NSWindowController, NSWindowDelegate {
             let row = NSStackView(views:[icon,field]);row.alignment = .top;row.spacing=9
             icon.widthAnchor.constraint(equalToConstant:20).isActive=true
             stack.addArrangedSubview(row)
+            instructionRows.append(row)
         }
         step("1.circle","打開「私隱與保安」→「輸入監察」（也稱「輸入監控」），開啟 Sage Keys 旁的開關。")
         step("2.circle","找不到 Sage Keys？按「＋」加入目前這份 App。更新後舊開關仍然無效？可先選舊 Sage Keys 按「−」，再加入新版。")
@@ -144,9 +146,18 @@ final class PermissionGuide: NSWindowController, NSWindowDelegate {
         window.center()
     }
     required init?(coder:NSCoder) {fatalError("init(coder:) unsupported")}
-    func update(status text:String, target copy:String, canStart:Bool, hint:String) {
-        status.stringValue=text;target.stringValue=copy;confirm.isEnabled=canStart
-        feedback.stringValue=hint.isEmpty ? "若只打開了系統設定首頁，可按「打開私隱與保安」再選「輸入監察」。" : hint
+    func update(status text: String, target copy: String, authorized: Bool, canStart: Bool, hint: String) {
+        status.stringValue = text
+        target.stringValue = copy
+        confirm.isEnabled = canStart
+        confirm.bezelColor = canStart ? NSColor(srgbRed:0.54,green:0.67,blue:0.57,alpha:1) : nil
+        instructionRows.forEach { $0.isHidden = authorized }
+        if !hint.isEmpty {feedback.stringValue = hint}
+        else if authorized {
+            feedback.stringValue = canStart ? "系統授權已完成。按「確認並開始本次同步」，再切回要使用的 App。" : "系統授權已完成。按「重新選取 App」選擇本次目標。"
+        } else {
+            feedback.stringValue = "若系統沒有彈出提示，按「打開輸入監察設定」。若只見設定首頁，可按「打開私隱與保安」。"
+        }
         fit()
     }
     private func fit() {
