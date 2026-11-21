@@ -21,6 +21,8 @@ with subprocess.Popen(command) as launch:
         try:
             launch.wait(timeout=175)
         except subprocess.TimeoutExpired:
+            subprocess.run(["/usr/bin/sample", host, "1", "5", "-file", str(evidence/"timeout-sample.txt")], timeout=10)
+            print((evidence/"native-tests.log").read_text(), flush=True)
             try:
                 os.kill(int(host), 15)
             except ProcessLookupError:

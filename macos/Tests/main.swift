@@ -18,6 +18,8 @@ app.delegate=delegate
 @MainActor func runChecks() async {
     var results:[String:Any]=[:],failed=[String]()
     func record(_ name:String,_ body:() async throws -> Any) async {
+        print("BEGIN",name);fflush(stdout)
+        defer {fflush(stdout)}
         do {let value=try await body();results[name]=value;print("PASS",name)}
         catch {failed.append(name);results[name]=["error":String(describing:error)];print("FAIL",name,error)}
     }

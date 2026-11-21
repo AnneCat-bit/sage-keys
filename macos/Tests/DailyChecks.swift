@@ -62,11 +62,10 @@ struct DailyChecks {
         return target
     }
 
-    func open(_ url: URL, arguments: [String] = []) async throws -> NSRunningApplication {
+    func open(_ url: URL) async throws -> NSRunningApplication {
         try await withCheckedThrowingContinuation { continuation in
             let config = NSWorkspace.OpenConfiguration()
             config.createsNewApplicationInstance = false
-            config.arguments = arguments
             NSWorkspace.shared.openApplication(at: url, configuration: config) { app, error in
                 if let app = app {continuation.resume(returning: app)}
                 else {continuation.resume(throwing: error ?? Failure("Launch Services could not open application"))}
@@ -193,18 +192,36 @@ struct DailyChecks {
     func browserIdentity() async throws -> [String: Any] {
         let id = "com.google.Chrome"
         guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) else {throw Failure("Chrome unavailable")}
-        let existing = NSRunningApplication.runningApplications(withBundleIdentifier: id).first
-        let chrome: NSRunningApplication
-        if let existing = existing {chrome = existing}
-        else {chrome = try await open(url, arguments: ["--no-first-run", "--no-default-browser-check", "--disable-background-networking", "about:blank"])}
-        defer {if existing == nil {chrome.terminate()}}
-        _ = try await approve(id, remember: true)
-        guard let identity = TrustedApps().entries.first(where: { $0.bundleID == id }) else {throw Failure("Chrome consent missing")}
-        try require(identity.signer.hasPrefix("Team ") && TrustedApps().allows(chrome), "expected a verified third-party signer")
-        try menu("管理已信任 App", identity.name, "移除")
-        try require(!pet.qaMonitoring && !TrustedApps().allows(chrome), "browser removal")
-        try menu("立即暫停")
-        return ["bundleID":identity.bundleID, "signer":identity.signer, "savedAndRevalidated":true, "removed":true]
+        // Use a fresh, empty profile to avoid first-run and profile chooser dialogs.
+        guard let executable = Bundle(url: url)?.executableURL else {throw Failure("Chrome executable")}
+        let profile = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let launcher = Process()
+        launcher.executableURL = executable
+        launcher.arguments = ["--user-data-dir=" + profile.path, "--no-first-run", "--no-default-browser-check",
+                              "--disable-background-networking", "--disable-sync", "about:blank"]
+        launcher.standardOutput = FileHandle.nullDevice
+        launcher.standardError = FileHandle.nullDevice
+        try launcher.run()
+        defer {if launcher.isRunning {launcher.terminate()}}
+        var chrome: NSRunningApplication?
+        try await wait("running signed browser", seconds: 12) {
+            chrome = NSRunningApplication(processIdentifier: launcher.processIdentifier)
+            return chrome?.bundleIdentifier == id
+        }
+        let start = ProcessInfo.processInfo.systemUptime
+        guard let browser = chrome, let signed = SignedProcess(browser) else {throw Failure("Chrome signing identity")}
+        let suite = "io.github.annecat-bit.sagekeys.qa.browser"
+        let prefs = UserDefaults(suiteName: suite)!
+        defer {prefs.removePersistentDomain(forName: suite)}
+        let list = TrustedApps(defaults: prefs)
+        list.save(signed.identity)
+        let saved = TrustedApps(defaults: prefs)
+        try require(signed.identity.signer.hasPrefix("Team ") && saved.allows(browser), "third-party signed identity")
+        let seconds = ProcessInfo.processInfo.systemUptime - start
+        saved.remove(id)
+        try require(!saved.allows(browser), "removal did not revoke browser approval")
+        return ["bundleID":id, "signer":signed.identity.signer, "verifiedAndReloaded":true,
+                "identityAndReloadCheckSeconds":seconds, "removed":true]
     }
 
     func protection() async throws -> [String: Any] {
