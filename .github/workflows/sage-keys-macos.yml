@@ -1,6 +1,11 @@
 name: Sage Keys for Mac
 on:
   workflow_dispatch:
+    inputs:
+      previous_run:
+        description: "Optional successful Sage Keys run containing a previous personal-test ZIP for identity comparison"
+        type: string
+        required: false
   push:
     branches: [main]
     paths:
@@ -53,6 +58,30 @@ jobs:
           path: macos/build/evidence/
           if-no-files-found: warn
           retention-days: 30
+  compare-update:
+    if: github.event_name == 'workflow_dispatch' && inputs.previous_run != ''
+    needs: apple-silicon
+    runs-on: macos-15
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: Sage-Keys-arm64-personal-test
+          path: old-release
+          run-id: ${{ inputs.previous_run }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: Sage-Keys-arm64-personal-test
+          path: new-release
+      - name: Compare signed releases at the same installation path
+        run: bash macos/Tests/update-identity.sh old-release/Sage-Keys-arm64.zip new-release/Sage-Keys-arm64.zip
   settings-links:
     strategy:
       matrix:
