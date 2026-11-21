@@ -50,7 +50,7 @@ final class PermissionProgress {
         if status == .granted {observedGrant();return "已取得輸入監察權限"}
         if status == .inconsistent {return "系統權限回報不一致，目前無法同步。請重新檢查，必要時退出再開。"}
         if let past = defaults.string(forKey: "inputGuide.lastGrantedBuild") {
-            return past == build ? "之前有權限，目前已失效。請重新授權。" : "更新後，新版本目前沒有輸入監察權限。"
+            return past == build ? "之前取得的權限目前未生效。" : "更新後，新版本目前沒有輸入監察權限。"
         }
         switch status {
         case .denied: return "Sage Keys 還未獲得有效的鍵盤監察權限。"
@@ -87,6 +87,27 @@ private final class GuideSheet: NSView {
     }
 }
 
+private final class GuidePanel: NSPanel {
+    var tab: ((Bool) -> Void)?
+    override func sendEvent(_ event: NSEvent) {
+        // Navigation is local to this guide, including when system-wide full keyboard access is off.
+        if event.type == .keyDown && event.keyCode == 48 &&
+           event.modifierFlags.intersection([.command,.option,.control]).isEmpty, let tab = tab {
+            tab(event.modifierFlags.contains(.shift))
+            return
+        }
+        super.sendEvent(event)
+    }
+}
+private final class GuideButton: NSButton {
+    override var acceptsFirstResponder: Bool {true}
+    override func becomeFirstResponder() -> Bool {
+        let accepted=super.becomeFirstResponder()
+        if accepted {scrollToVisible(bounds)}
+        return accepted
+    }
+}
+
 final class PermissionGuide: NSWindowController, NSWindowDelegate {
     private let scroll = NSScrollView()
     private let sheet = GuideSheet()
@@ -106,7 +127,7 @@ final class PermissionGuide: NSWindowController, NSWindowDelegate {
     var inspect: () -> InstallationCheck = {InstallationCheck(previousHash:nil)}
 
     init() {
-        let panel=NSPanel(contentRect:NSRect(x:0,y:0,width:510,height:548),styleMask:[.titled,.closable,.resizable],backing:.buffered,defer:false)
+        let panel=GuidePanel(contentRect:NSRect(x:0,y:0,width:510,height:460),styleMask:[.titled,.closable,.resizable],backing:.buffered,defer:false)
         super.init(window:panel)
         panel.title="Sage Keys · 輸入監察導覽";panel.isReleasedWhenClosed=false;panel.hidesOnDeactivate=false
         panel.contentMinSize=NSSize(width:356,height:295)
@@ -114,6 +135,14 @@ final class PermissionGuide: NSWindowController, NSWindowDelegate {
         scroll.hasVerticalScroller=true;scroll.autohidesScrollers=true;scroll.scrollerStyle = .overlay
         scroll.drawsBackground=true;scroll.backgroundColor=GuideDrawing.paper;scroll.borderType = .noBorder
         panel.contentView=scroll;scroll.documentView=sheet;panel.delegate=self;panel.center()
+        panel.tab = { [weak self] backward in
+            guard let self=self, let window=self.window else {return}
+            let choices=self.buttons.filter(\.isEnabled)
+            guard !choices.isEmpty else {return}
+            let index=choices.firstIndex { $0 === window.firstResponder } ?? (backward ? 0 : -1)
+            let next=(index + (backward ? -1:1) + choices.count) % choices.count
+            window.makeFirstResponder(choices[next])
+        }
     }
     required init?(coder:NSCoder){fatalError()}
     func windowDidResize(_ note:Notification){sheet.arrange(width:scroll.contentSize.width)}
@@ -143,7 +172,7 @@ final class PermissionGuide: NSWindowController, NSWindowDelegate {
     private func actions(_ entries:[(String,Selector)], primary:Bool=false) {
         var row=[NSView]()
         for (i,entry) in entries.enumerated() {
-            let b=NSButton(title:entry.0,target:self,action:entry.1)
+            let b=GuideButton(title:entry.0,target:self,action:entry.1)
             b.bezelStyle = .rounded;b.font = .systemFont(ofSize:13*zoom,weight:.medium)
             if primary && i == 0 {b.bezelColor=NSColor(srgbRed:0.68,green:0.77,blue:0.63,alpha:1)}
             if entry.1 == #selector(start) {b.isEnabled=canStart}
@@ -176,6 +205,7 @@ final class PermissionGuide: NSWindowController, NSWindowDelegate {
             label("你回報開關已開。這份 Sage Keys 的權限檢查仍未通過，本次同步維持關閉。")
             label(reopened ? "重開後仍未生效？核對授權的副本" : "先核對正在執行的副本",15,.semibold)
             label(install?.advice ?? "")
+            if !reopened {label("已確認是同一份？先退出再重開。若仍未生效，可重新加入新版。")}
             actions([("在 Finder 顯示目前版本",#selector(reveal)),("檢查安裝與授權",#selector(diagnostics))],primary:true)
             actions([("退出並保留進度",#selector(quit)),("如何重新加入新版",#selector(replacement))])
             actions([("打開輸入監察設定",#selector(openInput)),("修正開關回報",#selector(settingsPage))])
@@ -202,7 +232,7 @@ final class PermissionGuide: NSWindowController, NSWindowDelegate {
         }
         if !hint.isEmpty {label(hint,13,.medium)}
         if page != .success {
-            actions([("重新檢查權限",#selector(check)),("確認並開始本次同步",#selector(start))])
+            actions([("重新檢查權限",#selector(check))])
         } else {
             actions([("重新檢查權限",#selector(check)),("檢查安裝與授權",#selector(diagnostics))])
         }

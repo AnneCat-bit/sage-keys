@@ -40,6 +40,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
     private var guide: PermissionGuide?
     private var reportedAtLaunch = false
     private var recordedSigningHash = false
+    private var channelFailed = false
     private var oneTimeTarget: NSRunningApplication?
     private var oneTimeSignature: TrustedApp?
     private var needsPermissionHelp = false
@@ -173,9 +174,13 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
             if saved || allowed.contains(front) {
                 verifiedFront = front
                 if monitor.start() {
+                    channelFailed=false
                     syncStatus = (saved ? "同步中 · 已信任 " : "同步中 · 本次允許 ") + (front.localizedName ?? "App")
                 } else if NSWorkspace.shared.frontmostApplication == front {
-                    pauseAll(protectionIssue ?? "無法啟動輸入監察")
+                    let issue=protectionIssue
+                    channelFailed = issue == nil
+                    if channelFailed {needsPermissionHelp=true}
+                    pauseAll(issue ?? "權限檢查已通過，事件監測未能啟動。請檢查安裝與授權。")
                     return
                 } else {
                     verifiedFront = nil // A later activation notification reconciles the new target.
@@ -191,7 +196,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         guard display.ready, !closing else {return}
         if let issue = protectionIssue {pauseAll(issue);return}
         if !recordedSigningHash {
-            progress.rememberHash(InstallationCheck(previousHash:progress.lastAuthorizedHash).cdHash)
+            progress.rememberHash(InstallationCheck.runningHash())
             recordedSigningHash=true
         }
         show()
@@ -285,6 +290,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         if armed {pauseAll("已暫停");return}
         guard display.ready else {notice="等待鍵盤載入";refresh();return}
         if selectingTarget {addFront();return}
+        if channelFailed {openInstallationCheck();return}
         if progress.pending != nil {openGuide();return}
         if trust.entries.isEmpty {
             if needsPermissionHelp && !monitor.hasAccess {openGuide()} else {addFront()}
@@ -351,7 +357,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         let reading = monitor.accessReading
         let status = reading.status
         if reading.preflight {progress.switchReportedOn=false;reportedAtLaunch=false}
-        needsPermissionHelp = status != .granted
+        needsPermissionHelp = status != .granted || channelFailed
         let permission = progress.statusText(status)
         var target: String
         var canConfirm = true
@@ -367,8 +373,9 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
             canConfirm = !trust.entries.isEmpty
             target = canConfirm ? "已保存的信任清單仍在。確認後才會開始本次同步。" : "完成後切回目標 App，再從選單允許該 App。"
         }
+        let message = hint.isEmpty && channelFailed ? "上次權限檢查通過，但事件監測未能建立。請核對安裝副本，退出再開。" : hint
         guide?.update(status:permission, target:target, reading:reading, reported:progress.switchReportedOn,
-                      reopened:reportedAtLaunch, canStart:reading.preflight && canConfirm && display.ready, hint:hint)
+                      reopened:reportedAtLaunch, canStart:reading.preflight && canConfirm && display.ready, hint:message)
         refresh()
     }
 
