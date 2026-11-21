@@ -1,0 +1,1 @@
+{"name":"sage-keys-mac-build","version":"0.1.0","private":true,"description":"Build-time offline JavaScript bundler","devDependencies":{"esbuild":"0.25.12"}}

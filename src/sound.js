@@ -1,10 +1,10 @@
 // Only recorded WAV excerpts are scheduled. Each buffer contains seven slices.
-export function createSound(prefs, report) {
+export function createSound(prefs, report, bundled) {
   const files = new Map(), decoded = new Map(), voices = new Set(), lastIndex = new Map();
-  const base = new URL('../assets/audio/', import.meta.url);
+  const base = bundled ? null : new URL('../assets/audio/', import.meta.url);
   let context, master, compressor, slices, indexRequest, idleTimer, generation = 0, pending;
   const buffers = new Map();
-  let wanted=false, suspending;
+  let wanted=false, suspending, disposed=false;
   function get(url) {
     return fetch(url).then(response => {
       if (!response.ok) throw Error('Audio unavailable');
@@ -13,18 +13,20 @@ export function createSound(prefs, report) {
   }
   function sampleFile(tone) {
     if (!files.has(tone)) {
-      files.set(tone, get(new URL(tone+'.wav',base)).then(r=>r.arrayBuffer())
+      const data=bundled ? Promise.resolve(bundled.sample(tone)) : get(new URL(tone+'.wav',base)).then(r=>r.arrayBuffer());
+      files.set(tone, data
         .catch(error=>{ files.delete(tone); throw error; }));
     }
     return files.get(tone);
   }
   function loadIndex() {
+    if (bundled) { slices=bundled.index; return Promise.resolve(); }
     if (!indexRequest) indexRequest = get(new URL('sprites.json',base)).then(r=>r.json())
       .then(data=>{slices=data;}).catch(error=>{indexRequest=null; throw error;});
     return indexRequest;
   }
   function preload() {
-    if (!prefs.muted && prefs.volume) {
+    if (!disposed && !prefs.muted && prefs.volume) {
       Promise.all([loadIndex(), sampleFile(prefs.tone)]).catch(()=>report('音檔載入失敗，可按試聽重試。'));
     }
   }
@@ -81,7 +83,7 @@ export function createSound(prefs, report) {
     return Promise.all([running,loadIndex(),decode(tone)]);
   }
   function prepare() {
-    if (prefs.muted || !prefs.volume) return;
+    if (disposed || prefs.muted || !prefs.volume) return;
     const current=generation;
     try {
       ready(prefs.tone).then(()=>{
@@ -112,7 +114,7 @@ export function createSound(prefs, report) {
     idle();
   }
   async function play(code) {
-    if (prefs.muted || !prefs.volume) return;
+    if (disposed || prefs.muted || !prefs.volume) return;
     const tone=prefs.tone;
     try {
       if (wanted && !suspending && context?.state==='running' && slices && buffers.has(tone)) {
@@ -131,7 +133,7 @@ export function createSound(prefs, report) {
       schedule(code,tone,buffers.get(tone));
     } catch {
       if (!prefs.muted && tone===prefs.tone) report('暫時無法播放錄音，請按試聽重試。');
-      if (context) idle();
+      if (context && !disposed) idle();
     }
   }
   function sync() {
@@ -140,5 +142,12 @@ export function createSound(prefs, report) {
     else preload();
   }
   preload();
-  return { play, prepare, sync, halt };
+  function dispose() {
+    disposed=true;
+    halt();
+    master?.disconnect(); compressor?.disconnect();
+    files.clear(); decoded.clear(); buffers.clear(); lastIndex.clear();
+    return context?.close().catch(()=>{});
+  }
+  return { play, prepare, sync, halt, dispose };
 }

@@ -37,15 +37,15 @@ function makeFlat(host) {
   };
 }
 
-async function makeScene(host, onLost) {
+async function makeScene(host, onLost, options) {
   const canvas = document.createElement('canvas');
-  const options = {alpha:true, antialias:true, powerPreference:'low-power', stencil:false, preserveDrawingBuffer:true};
-  const context = canvas.getContext('webgl2',options) || canvas.getContext('webgl',options);
+  const glOptions = {alpha:true, antialias:true, powerPreference:'low-power', stencil:false, preserveDrawingBuffer:true};
+  const context = canvas.getContext('webgl2',glOptions) || canvas.getContext('webgl',glOptions);
   if (!context) throw Error('WebGL unavailable');
   const [THREE, { createKeyboard }] = await Promise.all([
     import('../assets/three.module.min.js'), import('./model.js')
   ]);
-  const renderer = new THREE.WebGLRenderer({canvas,context,...options});
+  const renderer = new THREE.WebGLRenderer({canvas,context,...glOptions});
   const scene = new THREE.Scene();
   const camera = new THREE.OrthographicCamera(-10,10,5,-5,.1,100);
   scene.add(new THREE.HemisphereLight(0xfffefa, 0xb2bbba, 1.70));
@@ -58,12 +58,13 @@ async function makeScene(host, onLost) {
   const model = createKeyboard();
   scene.add(model.group);
   renderer.setClearColor(0x000000,0);
-  renderer.domElement.addEventListener('webglcontextlost', event => {
+  const onContextLost=event=>{
     event.preventDefault();
     model.dispose();
     renderer.dispose();
     onLost();
-  }, { once:true });
+  };
+  canvas.addEventListener('webglcontextlost',onContextLost,{once:true});
   host.replaceChildren(renderer.domElement);
   const byCode = new Map(keys.map((key,i)=>[key.code,i]));
   const changed = new Set();
@@ -89,10 +90,16 @@ async function makeScene(host, onLost) {
   return {
     move(code,value) { model.setDepth(code,value); changed.add(code); },
     invalidate() { previousPose=null; },
+    dispose() {
+      canvas.removeEventListener('webglcontextlost',onContextLost);
+      model.dispose();
+      renderer.dispose();
+      renderer.forceContextLoss();
+    },
     draw(yaw, pitch, zoom, quality) {
       const width = host.clientWidth, height = host.clientHeight;
       if (!width || !height) return;
-      const dpr = Math.min(host.ownerDocument.defaultView.devicePixelRatio || 1, quality === 'eco' ? 1.25 : 1.75);
+      const dpr = Math.min(host.ownerDocument.defaultView.devicePixelRatio || 1, options.pixelLimit?.(quality) ?? (quality === 'eco' ? 1.25 : 1.75));
       const pose = [width,height,dpr,yaw,pitch,zoom].join(',');
       if (pose===previousPose && !changed.size) return;
       if (width !== previousWidth || height !== previousHeight || dpr !== previousDpr) {
@@ -138,23 +145,24 @@ async function makeScene(host, onLost) {
   };
 }
 
-export function createView(host, quality, onChange) {
+export function createView(host, quality, onChange, options={}) {
   const supported = new Set(keys.map(key => key.code));
   const pressed = new Set(), unpainted = new Set(), moving = new Map(), depths = new Map();
   const touches = new Map();
   let backend, flat = false, yaw = preset.yaw, pitch = preset.pitch, zoom = 1, view = 'angle';
   let surface=host.ownerDocument.defaultView;
   let raf=0, last=-Infinity, active=!document.hidden && document.hasFocus();
-  let observer;
+  let observer, suspended=false, disposed=false;
+  const listeners=new AbortController();
   function drawVisible() {
-    if (backend && !surface.document.hidden) backend.draw(yaw,pitch,zoom,quality);
+    if (!disposed && !suspended && backend && !surface.document.hidden) backend.draw(yaw,pitch,zoom,quality);
   }
   function notify() { onChange({ flat, zoom, view, active }); }
   function frame(stamp) {
     raf = 0;
-    if (!backend || surface.document.hidden) return;
+    if (disposed || suspended || !backend || surface.document.hidden) return;
     const elapsed = stamp-last;
-    const period = quality === 'eco' ? 1000/30 : 1000/60;
+    const period = 1000/(options.frameRate?.(quality) ?? (quality === 'eco' ? 30 : 60));
     if (elapsed < period-.6) { raf = surface.requestAnimationFrame(frame); return; }
     // rAF timestamps pace frames on the canvas owner. Key events and
     // rebound progress use the same clock regardless of document.
@@ -172,9 +180,10 @@ export function createView(host, quality, onChange) {
     if (moving.size) raf = surface.requestAnimationFrame(frame);
   }
   function requestDraw() {
-    if (backend && !surface.document.hidden && !raf) raf = surface.requestAnimationFrame(frame);
+    if (!disposed && !suspended && backend && !surface.document.hidden && !raf) raf = surface.requestAnimationFrame(frame);
   }
   function fallback() {
+    if (disposed) return;
     flat = true;
     view = 'top';
     backend = makeFlat(host);
@@ -183,7 +192,7 @@ export function createView(host, quality, onChange) {
       depths.set(code,1);
       backend.move(code,1);
     }
-    notify(); requestDraw();
+    notify(); requestDraw(); options.ready?.(true);
   }
   function setActive(value) {
     if (active === value) return;
@@ -210,12 +219,13 @@ export function createView(host, quality, onChange) {
     notify(); requestDraw();
   }
   function delta(a,b) { return Math.hypot(a.x-b.x,a.y-b.y); }
+  const inputOptions={signal:listeners.signal};
   host.addEventListener('pointerdown', e => {
-    if (e.button !== 0) return;
+    if (suspended || e.button !== 0) return;
     host.setPointerCapture(e.pointerId);
     touches.set(e.pointerId, {x:e.clientX,y:e.clientY});
     host.classList.add('dragging');
-  });
+  },inputOptions);
   host.addEventListener('pointermove', e => {
     const old = touches.get(e.pointerId);
     if (!old) return;
@@ -230,17 +240,17 @@ export function createView(host, quality, onChange) {
       view = 'custom'; notify(); requestDraw();
     }
     touches.set(e.pointerId, point);
-  });
+  },inputOptions);
   host.addEventListener('lostpointercapture', e => {
     touches.delete(e.pointerId);
     if (!touches.size) host.classList.remove('dragging');
-  });
+  },inputOptions);
   host.addEventListener('wheel', e => {
-    if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+    if (suspended || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
     e.preventDefault();
     const factor = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? host.clientHeight : 1;
     setZoom(zoom*Math.exp(-clamp(e.deltaY*factor,-400,400)*.0014));
-  }, {passive:false});
+  }, {...inputOptions,passive:false});
   function refreshSize() {
     if (active) requestDraw(); else drawVisible();
   }
@@ -267,16 +277,17 @@ export function createView(host, quality, onChange) {
     refreshSurface();
   }
   rehost();
-  makeScene(host, fallback).then(scene => {
+  makeScene(host, fallback, options).then(scene => {
+    if (disposed) { scene.dispose(); return; }
     backend = scene;
     for (const [code,depth] of depths) backend.move(code,depth);
     // Render the initial static pose even in an unfocused visible preview.
     if (!active) drawVisible();
-    notify(); requestDraw();
+    notify(); requestDraw(); options.ready?.(false);
   }).catch(fallback);
   return {
     key(code, down) {
-      if (!supported.has(code)) return false;
+      if (disposed || suspended || !supported.has(code)) return false;
       if (down) {
         if (pressed.has(code)) return false;
         pressed.add(code); unpainted.add(code); moving.delete(code); depths.set(code,1);
@@ -300,6 +311,24 @@ export function createView(host, quality, onChange) {
       for (const code of pressed) if (!/^(Meta|Shift|Alt|Control)/.test(code)) this.key(code,false);
     },
     selectView, setZoom, setActive, rehost, refreshSurface,
+    setSuspended(value) {
+      if (suspended===value || disposed) return;
+      if (value) {
+        // Reset the retained visible frame before parking the renderer.
+        setActive(false);
+        if (raf) surface.cancelAnimationFrame(raf);
+        raf=0;
+      }
+      suspended=value;
+      if (!value) { setActive(true); refreshSurface(); }
+    },
+    dispose() {
+      disposed=true;
+      if (raf) surface.cancelAnimationFrame(raf);
+      observer?.disconnect(); listeners.abort();
+      pressed.clear(); moving.clear(); depths.clear(); unpainted.clear(); touches.clear();
+      backend?.dispose?.(); backend=null; host.replaceChildren();
+    },
     adjustZoom(factor) { setZoom(Math.round((zoom+factor)*100)/100); },
     reset() { setZoom(1); selectView('angle'); },
     setQuality(value) { quality = value; requestDraw(); }

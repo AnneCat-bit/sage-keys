@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CFBundleName</key><string>Sage Keys</string>
+<key>CFBundleDisplayName</key><string>Sage Keys</string>
+<key>CFBundleIdentifier</key><string>io.github.annecat-bit.sagekeys</string>
+<key>CFBundleExecutable</key><string>SageKeys</string>
+<key>CFBundleVersion</key><string>1</string>
+<key>CFBundleShortVersionString</key><string>0.1.0</string>
+<key>CFBundlePackageType</key><string>APPL</string>
+<key>CFBundleIconFile</key><string>Sage</string>
+<key>LSMinimumSystemVersion</key><string>13.0</string>
+<key>LSUIElement</key><true/>
+<key>NSHighResolutionCapable</key><true/>
+<key>NSInputMonitoringUsageDescription</key><string>只在你開啟同步並允許的 App 中，以目前按住的物理鍵位驅動離線鍵盤動畫及錄音。</string>
+</dict></plist>
