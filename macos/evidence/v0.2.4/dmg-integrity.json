@@ -1,0 +1,91 @@
+{
+  "files": 17,
+  "identicalContentModesAndSymlinks": true,
+  "source": {
+    "Contents/Info.plist": [
+      "file",
+      "16017d2bdfacd7caff526f0832a6f8d6f636261b9c082ba86cf9dee1cba4b9cf",
+      420
+    ],
+    "Contents/_CodeSignature/CodeResources": [
+      "file",
+      "1e408b8cb6c8f2240115d1852b21fe3b4071bcc09b7ab9db6ddae38c4d73d855",
+      420
+    ],
+    "Contents/MacOS/SageKeys": [
+      "file",
+      "96d5b9bcb032c76fedd20c9f5625860bc2c67448c31f54be7d49ffd1bf27a1ba",
+      493
+    ],
+    "Contents/Resources/Sage.icns": [
+      "file",
+      "0ee2a68e5dcc3900eebac44ae93e5a0f3136ef66da9a54ce07133644311005cc",
+      420
+    ],
+    "Contents/Resources/Licenses/THREE-LICENSE.txt": [
+      "file",
+      "852e0e8699169bf9f6fdc6bda3e682d078dcbc738b5d33e74df594721bff271d",
+      420
+    ],
+    "Contents/Resources/Licenses/Instrument-Serif-LICENSE.txt": [
+      "file",
+      "b6106a757902d2d412e09d94dc4a226fe3da80485208a98003969f1b8b6b1d74",
+      420
+    ],
+    "Contents/Resources/Licenses/inputs-sha256.txt": [
+      "file",
+      "f7939d2e0d86fc829f05ca132a4eef921a9a43f7abbb8df09296ba9d8b039445",
+      420
+    ],
+    "Contents/Resources/Licenses/DM-Sans-LICENSE.txt": [
+      "file",
+      "6fbd040a29c2037a765dfb9f2561e9965b5c95c6dcb5dce516089d63d5f17af7",
+      420
+    ],
+    "Contents/Resources/Licenses/AUDIO.md": [
+      "file",
+      "5bc0587d42d91f0223a647e427af754766c538beb30c4530be12f52bb6aa11e5",
+      420
+    ],
+    "Contents/Resources/Pet/index.html": [
+      "file",
+      "919068de5a52b6783c7f6e4888bf64edf028acd4bed27bc1fa61b73d18a651a5",
+      420
+    ],
+    "Contents/Resources/Pet/pet.js": [
+      "file",
+      "f47bcf02d7eb88d0dc0de61bb1d9ac452417df99df5542995f8051282afca80a",
+      420
+    ],
+    "Contents/Resources/Pet/pet.css": [
+      "file",
+      "30f39bebded7f584d1f54f393bb356b3de34158a5d5de49e36d120b9e4b54e50",
+      420
+    ],
+    "Contents/Resources/Pet/style.css": [
+      "file",
+      "f392615fd5fcc2be3c652c6cf3649471f19c1ce2ede326d92cf1bc76fd7d2c84",
+      420
+    ],
+    "Contents/Resources/Pet/assets/fonts/instrument-serif-latin-400-normal.woff2": [
+      "file",
+      "5eb09b5ac0e28b67c2f041c8ba6d244604ca0c0980d65912ab2d47fed84ddc31",
+      420
+    ],
+    "Contents/Resources/Pet/assets/fonts/instrument-serif-latin-400-italic.woff2": [
+      "file",
+      "5a51946dfffa82972bc98745359c46761515641fda557c25116459a9f83da4a7",
+      420
+    ],
+    "Contents/Resources/Pet/assets/fonts/dm-sans-latin-400-normal.woff2": [
+      "file",
+      "4ab51eb2cd7305d177187908d6397474d4520663f6c6e572feb0a64f4fa80006",
+      420
+    ],
+    "Contents/Resources/Pet/assets/fonts/dm-sans-latin-600-normal.woff2": [
+      "file",
+      "6bb2b2645ba5eeaecf56322c543fa3a75b87b927977b9c03b1dabc4205089120",
+      420
+    ]
+  }
+}

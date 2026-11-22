@@ -1,0 +1,42 @@
+{
+  "idle": {
+    "sampledSeconds": 3.171,
+    "intervals": 6,
+    "host_cpu_one_core_pct": 0.31,
+    "new_webkit_cpu_one_core_pct": 1.26,
+    "host_rss_mib": 85.5,
+    "new_webkit_rss_mib": 130.3
+  },
+  "trustedIdle": {
+    "sampledSeconds": 3.676,
+    "intervals": 7,
+    "host_cpu_one_core_pct": 0.27,
+    "new_webkit_cpu_one_core_pct": 0.27,
+    "host_rss_mib": 85.0,
+    "new_webkit_rss_mib": 122.8
+  },
+  "typing15": {
+    "sampledSeconds": 2.675,
+    "intervals": 5,
+    "host_cpu_one_core_pct": 1.5,
+    "new_webkit_cpu_one_core_pct": 9.72,
+    "host_rss_mib": 85.5,
+    "new_webkit_rss_mib": 126.6
+  },
+  "typing30": {
+    "sampledSeconds": 3.31,
+    "intervals": 6,
+    "host_cpu_one_core_pct": 1.51,
+    "new_webkit_cpu_one_core_pct": 12.99,
+    "host_rss_mib": 85.5,
+    "new_webkit_rss_mib": 129.7
+  },
+  "untrustedStandby": {
+    "sampledSeconds": 3.798,
+    "intervals": 7,
+    "host_cpu_one_core_pct": 0.26,
+    "new_webkit_cpu_one_core_pct": 0.26,
+    "host_rss_mib": 85.0,
+    "new_webkit_rss_mib": 122.8
+  }
+}

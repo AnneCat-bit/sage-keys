@@ -1,0 +1,13 @@
+{
+  "checks" : [
+    "distinct launch, switch report and signed intent retained",
+    "HID granted with CG false kept blocked",
+    "return to guide reads fresh grant, stays disarmed",
+    "manual confirmation saves only calculator",
+    "Finder remains unapproved"
+  ],
+  "endpoint" : "test double, no system event source",
+  "phase" : "guide-restored",
+  "pid" : 8791,
+  "realTCCPreflight" : false
+}

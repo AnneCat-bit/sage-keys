@@ -1,0 +1,35 @@
+settings-links (macos-15)	Set up job	2026-11-22T03:09:07.2061900Z Image: macos-15-arm64
+settings-links (macos-15)	Set up job	2026-11-22T03:09:07.2063180Z Included Software: https://github.com/actions/runner-images/blob/macos-15-arm64/20261118.0550/images/macos/macos-15-arm64-Readme.md
+settings-links (macos-15)	Set up job	2026-11-22T03:09:07.2064500Z Image Release: https://github.com/actions/runner-images/releases/tag/macos-15-arm64%2F20261118.0550
+settings-links (macos-15)	Observe the actual System Settings destination	2026-11-22T03:09:32.8036910Z expected=Privacy & Security dispatch=privacy foreground=com.apple.systempreferences exactPaneVerified=true evidence=AX window title: Privacy & Security
+settings-links (macos-15)	Observe the actual System Settings destination	2026-11-22T03:09:32.8141250Z expected=Input Monitoring dispatch=input foreground=com.apple.systempreferences exactPaneVerified=true evidence=AX detail text: Allow the applications below to monitor input from your keyboard even while using other applications.
+settings-links (macos-26)	Set up job	2026-11-22T03:09:08.2968470Z Image: macos-26-arm64
+settings-links (macos-26)	Set up job	2026-11-22T03:09:08.2969630Z Included Software: https://github.com/actions/runner-images/blob/macos-26-arm64/20261117.0516/images/macos/macos-26-arm64-Readme.md
+settings-links (macos-26)	Set up job	2026-11-22T03:09:08.2970940Z Image Release: https://github.com/actions/runner-images/releases/tag/macos-26-arm64%2F20261117.0516
+settings-links (macos-26)	Observe the actual System Settings destination	2026-11-22T03:09:34.5607860Z expected=Privacy & Security dispatch=privacy foreground=com.apple.systempreferences exactPaneVerified=true evidence=AX window title: Privacy & Security
+settings-links (macos-26)	Observe the actual System Settings destination	2026-11-22T03:09:34.5610300Z expected=Input Monitoring dispatch=input foreground=com.apple.systempreferences exactPaneVerified=true evidence=AX window title: Input Monitoring
+apple-silicon	Set up job	2026-11-22T03:09:07.2169780Z Image: macos-15-arm64
+apple-silicon	Set up job	2026-11-22T03:09:07.2170880Z Included Software: https://github.com/actions/runner-images/blob/macos-15-arm64/20261118.0550/images/macos/macos-15-arm64-Readme.md
+apple-silicon	Set up job	2026-11-22T03:09:07.2172050Z Image Release: https://github.com/actions/runner-images/releases/tag/macos-15-arm64%2F20261118.0550
+apple-silicon	Record toolchain and build offline bundle	2026-11-22T03:09:10.0333230Z [36;1mtest "$(uname -m)" = arm64[0m
+apple-silicon	Record toolchain and build offline bundle	2026-11-22T03:09:10.0706400Z arm64
+apple-silicon	Record toolchain and build offline bundle	2026-11-22T03:09:10.0882770Z ProductVersion:		15.8.2
+apple-silicon	Record toolchain and build offline bundle	2026-11-22T03:09:10.0884850Z BuildVersion:		24H232
+apple-silicon	Record toolchain and build offline bundle	2026-11-22T03:09:10.3839340Z Xcode 16.4
+apple-silicon	Record toolchain and build offline bundle	2026-11-22T03:09:13.2051620Z Apple Swift version 6.1.2 (swiftlang-6.1.2.1.2 clang-1700.0.13.5)
+apple-silicon	Record toolchain and build offline bundle	2026-11-22T03:09:13.2075850Z Target: arm64-apple-macosx15.0
+apple-silicon	Record toolchain and build offline bundle	2026-11-22T03:09:35.4432520Z macos/build/Sage Keys.app/Contents/MacOS/SageKeys: Mach-O 64-bit executable arm64
+apple-silicon	Verify and package personal test app	2026-11-22T03:09:35.8022170Z [36;1mditto -c -k --sequesterRsrc --keepParent 'macos/build/Sage Keys.app' 'macos/build/Sage-Keys-arm64.zip'[0m
+apple-silicon	Verify and package personal test app	2026-11-22T03:09:35.8022940Z [36;1mcd macos/build && shasum -a 256 Sage-Keys-arm64.zip > SHA256.txt[0m
+apple-silicon	Run actions/upload-artifact@v4	2026-11-22T03:09:36.0107870Z   name: Sage-Keys-arm64-personal-test
+apple-silicon	Run actions/upload-artifact@v4	2026-11-22T03:09:36.0108260Z   path: macos/build/Sage-Keys-arm64.zip
+apple-silicon	Run actions/upload-artifact@v4	2026-11-22T03:09:37.5511230Z Artifact Sage-Keys-arm64-personal-test.zip successfully finalized. Artifact ID 14737202147
+apple-silicon	Run actions/upload-artifact@v4	2026-11-22T03:09:37.5513870Z Artifact Sage-Keys-arm64-personal-test has been successfully uploaded! Final size is 752921 bytes. Artifact ID is 14737202147
+apple-silicon	Create Finder disk image	2026-11-22T03:10:04.1609840Z hdiutil: verify: checksum of "/Users/runner/work/sage-keys/sage-keys/macos/build/Sage-Keys-Apple-Silicon.dmg" is VALID
+apple-silicon	Test Finder installation and installed application	2026-11-22T03:10:30.6134460Z DMG_TEST {"installationGate":true,"path":"\/private\/var\/folders\/9d\/l02zfgrs7c16twd3wbpdmhkc0000gn\/T\/F3F7CABC-4E8F-4D4D-8ADA-6B706637CD4E\/Downloads\/Sage Keys.app\/Contents\/MacOS\/SageKeys","step":"download-folder"}
+apple-silicon	Test Finder installation and installed application	2026-11-22T03:10:30.6189140Z DMG_TEST {"installationGate":true,"path":"\/Users\/runner\/work\/sage-keys\/sage-keys\/macos\/build\/dmg-check\/Sage Keys.app\/Contents\/MacOS\/SageKeys","permissionGuide":false,"step":"launch-from-dmg"}
+apple-silicon	Test Finder installation and installed application	2026-11-22T03:10:30.6193700Z DMG_TEST {"from":[320,318],"step":"finder-drag","target":"\/Applications\/Sage Keys.app","to":[640,318]}
+apple-silicon	Test Finder installation and installed application	2026-11-22T03:10:30.6208010Z DMG_TEST {"blocked":true,"newPID":6281,"oldPID":6035,"step":"duplicate"}
+apple-silicon	Test Finder installation and installed application	2026-11-22T03:10:30.6226320Z DMG_TEST {"diagnostic":"Sage Keys · 輸入監察導覽\nSage Keys · 輸入監察導覽\n程序   PID 6296 · 本程序未收到重新開啟事件\n其他執行程序   未發現\n版本   0.2.4 (6)\n位置   應用程式\n\/Applications\/Sage Keys.app\n執行檔（proc_pidpath）   \/Applications\/Sage Keys.app\/Contents\/MacOS\/SageKeys\n暫時掛載路徑特徵   未發現\n\nBundle ID   io.github.annecat-bit.sagekeys\n簽署   ad-hoc · 無開發者團隊簽署\nCDHash   2efe300f287052b61c7bc455d02e6f7153e22a5f\n啟動時 CDHash   2efe300f287052b61c7bc455d02e6f7153e22a5f\n磁碟 CDHash   2efe300f287052b61c7bc455d02e6f7153e22a5f\n簽署要求   cdhash H\"2efe300f287052b61c7bc455d02e6f7153e22a5f\"\n簽署檢查 OSStatus   0\n執行中與磁碟身分   一致\n上次權限有效的 build   沒有紀錄\n\n\n其他已登記副本   \/Users\/runner\/work\/sage-keys\/sage-keys\/macos\/build\/Sage Keys.app\n\n目前系統權限   本程序目前未通過；原因無法由 API 判定\nCGPreflightListenEventAccess   false\nCGRequestListenEventAccess   本次程序未請求\nIOHIDCheckAccess (ListenEvent)   unknown\n其他操作\n其他操作\n打開輸入監察設定\n打開輸入監察設定\n重新檢查權限\n重新檢查權限\n繼續使用桌寵\n繼續使用桌寵\n目前執行位置已在「應用程式」。\n\/Applications\/Sage Keys.app\n尚未取得權限。macOS 未回報是否已作選擇。\n檢查安裝與授權\n放大鏡核對兩份 App 的安裝身分","installationPrompt":false,"path":"\/Applications\/Sage Keys.app\/Contents\/MacOS\/SageKeys","step":"installed-relaunch"}
+apple-silicon	Test Finder installation and installed application	2026-11-22T03:10:30.6233380Z DMG_TEST {"installationPrompt":false,"path":"\/Users\/runner\/Applications\/Sage Keys.app\/Contents\/MacOS\/SageKeys","step":"user-applications"}
+apple-silicon	Test Finder installation and installed application	2026-11-22T03:10:31.0008800Z PASS installed app matches every compiled file, file mode and symlink

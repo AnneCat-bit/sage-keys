@@ -1,0 +1,10 @@
+{
+  "checks" : [
+    "mismatched signed requirement blocked despite granted permission",
+    "previous trust intact"
+  ],
+  "endpoint" : "test double, no system event source",
+  "phase" : "guide-mismatch",
+  "pid" : 8905,
+  "realTCCPreflight" : false
+}

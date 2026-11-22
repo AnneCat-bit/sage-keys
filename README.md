@@ -52,4 +52,4 @@ GitHub Pages 從 `main` 的 `/(root)` 發布，沒有建置步驟。網站使用
 
 ## Sage Keys for Mac
 
-Apple Silicon 個人測試版使用 AppKit 非啟用式浮窗與本機 WKWebView，可離線運作。v0.2.3 啟動時直接顯示桌寵。未獲輸入監察時，仍可試敲鍵帽及播放錄音。Finder 亦可重開已隱藏的桌寵。首次允許前景 App 時可選擇保存其簽署身分，之後每次啟動仍要手動開啟同步。下載、單一 App 核准方式、實測數據與限制見原生版文件。[Mac 下載及安裝](macos/README.md) · [v0.2.3 根因與安裝生命週期實測](macos/LIFECYCLE-v0.2.3.md)
+Apple Silicon 個人測試版使用 AppKit 非啟用式浮窗與本機 WKWebView，可離線運作。v0.2.4 提供標準 DMG，透過 Finder 拖入 Applications 安裝，啟動時分開檢查安裝位置與輸入監察。每次啟動同步仍預設關閉，未授權時仍可試敲鍵帽及播放錄音。這是未經 Developer ID 簽署或公證的個人測試版，DMG 不保證沿用舊版系統授權。[Mac DMG 下載及安裝](macos/README.md) · [Finder 實測與限制](macos/INSTALL-v0.2.4.md)

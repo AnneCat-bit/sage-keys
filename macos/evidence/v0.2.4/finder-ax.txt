@@ -1,0 +1,19 @@
+AXWindow Sage Keys
+AXStaticText Sage Keys
+AXImage Macintosh HD
+AXButton 
+AXButton 
+AXGroup 
+AXButton 
+AXSplitGroup 
+AXSplitGroup 
+AXScrollArea 
+AXList icon view
+AXList 
+AXGroup 
+AXGroup 
+AXImage Applications | Applications
+AXGroup 
+AXImage Sage Keys | Sage Keys
+AXGroup 
+AXSplitter 
