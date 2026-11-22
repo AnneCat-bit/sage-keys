@@ -247,7 +247,12 @@ final class PermissionGuide: NSWindowController, NSWindowDelegate {
         NSAccessibility.post(element:sheet,notification:.layoutChanged)
     }
 
-    private func move(_ next:GuidePage){page=next;hint="";recheck()}
+    private func move(_ next:GuidePage){
+        page=next;hint=""
+        scroll.contentView.scroll(to:.zero)
+        scroll.reflectScrolledClipView(scroll.contentView)
+        recheck()
+    }
     @objc func diagnostics(){move(.installation)}
     @objc private func home(){move(authorized ? .success : (reported ? .repair:.status))}
     @objc private func switchOn(){reportSwitch(true);home()}
@@ -287,7 +292,7 @@ final class PermissionGuide: NSWindowController, NSWindowDelegate {
         NSAccessibility.post(element:sheet,notification:.announcementRequested,userInfo:[.announcement:announcement,.priority:NSAccessibilityPriorityLevel.medium.rawValue])
     }
     @objc private func scaleText(){zoom=zoom >= 1.5 ? 1 : zoom+0.25;render(reset:false)}
-    @objc private func reveal(){NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])}
+    @objc private func reveal(){NSWorkspace.shared.activateFileViewerSelecting([inspect().path])}
     @objc private func selectTarget(){chooseTarget()}
     @objc private func start(){finish()}
     @objc private func deferGuide(){later()}

@@ -44,9 +44,9 @@ func click(_ app:NSRunningApplication,_ title:String,_ button:String) throws {
     }
     try require(AXUIElementPerformAction(found!,kAXPressAction as CFString) == .success,"could not press "+button)
 }
-func open(_ url:URL) throws -> NSRunningApplication {
+func open(_ url:URL, separateInstance:Bool = false) throws -> NSRunningApplication {
     let config=NSWorkspace.OpenConfiguration()
-    config.createsNewApplicationInstance=false
+    config.createsNewApplicationInstance=separateInstance
     var proc:NSRunningApplication?, failure:Error?
     NSWorkspace.shared.openApplication(at:url,configuration:config){proc=$0;failure=$1}
     try wait("Launch Services completion"){proc != nil || failure != nil}
@@ -91,6 +91,27 @@ func run() throws {
     try quit(first)
     let old=try open(installed)
     try wait("repeated old guide"){window(old,guide) != nil}
+    try click(old,guide,"檢查安裝與授權")
+    let applications=try fm.url(for:.applicationDirectory,in:.userDomainMask,appropriateFor:nil,create:true)
+    let extra=applications.appendingPathComponent(installed.lastPathComponent)
+    try require(!fm.fileExists(atPath:extra.path),"user Applications already occupied")
+    try fm.copyItem(at:installed,to:extra)
+    defer {try? fm.removeItem(at:extra)}
+    func oldText() -> String {
+        guard let view=window(old,guide) else {return ""}
+        return elements(view).flatMap(strings).joined(separator:"\n")
+    }
+    let finder=NSRunningApplication.runningApplications(withBundleIdentifier:"com.apple.finder").first
+    finder?.activate(options:[.activateIgnoringOtherApps])
+    try wait("focus Finder"){NSWorkspace.shared.frontmostApplication == finder}
+    old.activate(options:[.activateIgnoringOtherApps])
+    try wait("return to old diagnostic"){NSWorkspace.shared.frontmostApplication == old}
+    RunLoop.current.run(until:Date().addingTimeInterval(0.45))
+    try require(!oldText().contains(extra.path),"0.2.2 did not reproduce stale copy list")
+    try click(old,guide,"重新檢查權限")
+    try wait("explicit check discovers actual second copy"){oldText().contains(extra.path)}
+    try fm.removeItem(at:extra)
+    try log(["step":"old-diagnostic","focusReturnKeptOldSnapshot":true,"manualCheckFoundActualCopy":true])
     let reopened=try open(installed)
     try require(reopened.processIdentifier==old.processIdentifier,"Finder-style reopen did not reuse its process")
     // Both releases stay intact. Move the old bundle aside while its process still exists.
@@ -101,6 +122,17 @@ func run() throws {
     try log(["step":"replace","oldVersion":oldVersion,"firstPID":first.processIdentifier,"oldPID":old.processIdentifier,
              "finderReusedPID":reopened.processIdentifier,"oldAutoGuideLaunches":2,"oldAliveAfterReplacement":true,
              "installedPath":installed.path,"diskVersion":diskVersion])
+    // Launch a separate copy only on the test machine to observe two live processes.
+    let parallel=try open(installed,separateInstance:true)
+    try require(parallel.processIdentifier != old.processIdentifier,"second instance not created")
+    try click(parallel,pet,"授權導覽")
+    try click(parallel,guide,"檢查安裝與授權")
+    try wait("old PID listed separately from installed copies"){
+        guard let view=window(parallel,guide) else {return false}
+        return elements(view).flatMap(strings).joined(separator:"\n").contains("其他執行程序   PID "+String(old.processIdentifier))
+    }
+    try log(["step":"concurrent-processes","diagnosingPID":parallel.processIdentifier,"otherPID":old.processIdentifier])
+    try quit(parallel)
     try quit(old)
     let current=try open(installed)
     try require(current.processIdentifier != old.processIdentifier && old.isTerminated,"old PID not terminated")

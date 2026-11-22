@@ -191,7 +191,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         guard display.ready, !closing else {return}
         if let issue = protectionIssue {pauseAll(issue);return}
         if !recordedSigningHash {
-            progress.rememberHash(InstallationCheck.runningHash())
+            progress.rememberHash(launchHash ?? InstallationCheck.runningHash())
             recordedSigningHash=true
         }
         show()
