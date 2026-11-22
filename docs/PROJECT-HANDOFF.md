@@ -93,6 +93,22 @@
 
 目前研究只能確認 ad-hoc 的識別問題，不能宣稱自簽方案已可用，也不能由這些 Runner 阻礙斷言自簽機制本身不可能。
 
+### 3.4 參考案例：Kliq
+
+[Kliq](https://github.com/crafter-station/kliq) 是免費開源的 macOS 跨 App 機械鍵盤音效程式。2026-11-22 核對其官方 [README](https://github.com/crafter-station/kliq/blob/82409b253ab090d150d5d4bcb401ff300a36edba/README.md)、[build.sh](https://github.com/crafter-station/kliq/blob/82409b253ab090d150d5d4bcb401ff300a36edba/build.sh) 與 [release.sh](https://github.com/crafter-station/kliq/blob/82409b253ab090d150d5d4bcb401ff300a36edba/release.sh)，參考版本為 `82409b253ab090d150d5d4bcb401ff300a36edba`。
+
+**使用者實機回報：已安裝 Kliq，只需批准一次「輔助使用」（Accessibility）權限，即可正常使用。** 這是使用者的安裝與使用經驗；本輪沒有重新驗證 Kliq 成品簽章、公證票據或跨版本更新，不把此回報擴大為所有更新都不需再次授權的保證。
+
+| 比較 | Sage Keys 目前狀態 | Kliq 官方文件及腳本所述 |
+| --- | --- | --- |
+| 簽署身分 | v0.2.4 使用 ad-hoc，DR 綁定具體成品；免費持久自簽研究仍受阻。 | 發行使用 Developer ID Application。建置腳本優先選用與發行相同的 Developer ID；沒有時才退回 Apple Development，亦允許明確選 ad-hoc。README 強調重用簽署身分，切換身分可能令既有授權失效。 |
+| 發行與更新 | 已有 DMG 安裝與完整性驗證，但未經 Developer ID 簽署或 Apple 公證；DMG 不能建立跨版本身分。 | 發行腳本建立 universal binary，以 Developer ID 簽署；App 與 DMG 分別提交 Apple 公證並附上票據，評估 DMG 後輸出 SHA-256；GitHub Releases 使用固定 DMG 檔名。這是可參考的發行流程，不表示已核實有自動更新器。 |
+| 系統權限 | 目前採 Input Monitoring（輸入監察），使用 `CGPreflightListenEventAccess()`／`CGRequestListenEventAccess()` 與唯讀事件 tap。 | README 指明首次啟動要求 Accessibility（輔助使用）以接收其他 App 的按鍵，並描述唯讀事件 tap。 |
+
+**Accessibility 與 Input Monitoring 是不同授權路徑，不能直接推定兩者的提示、授權保留或失效行為相同。** Kliq 的成功經驗不能證明 Sage Keys 的 M2 TCC 根因，也不能據此直接改用另一種權限。Developer ID 簽署及 Apple 公證有助於建立發行身分與系統信任，**不代表可以跳過使用者的系統授權**。
+
+未來若取得 Apple Developer Program 資格，可研究參考 Kliq 的正式簽署、公證及版本更新時重用身分的流程，另以 Sage Keys 的實際權限 API 驗證。**目前仍優先保留免費持久簽署研究方向，原生版繼續凍結於 v0.2.4。** 本案例不構成恢復開發、購買會員或發布新版的授權；外部 README 的 Terminal／權限重設建議亦不改變本交接文件既有的禁止事項。
+
 ## 4. 未來恢復開發的條件
 
 **原生版繼續凍結。先取得新的、可重現的獨立簽署證據，再評估是否需要新版 App。不得反覆編譯、換版本號或重簽成品測試運氣。** 本交接文件不授權新工作階段自動執行以下研究或發行。
