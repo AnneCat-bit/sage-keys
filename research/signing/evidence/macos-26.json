@@ -1,0 +1,56 @@
+{
+  "scope": "Code identity only; no TCC authorization or Sage Keys build",
+  "trustPolicy": "Disposable test certificates only; codeSign policy; removed before cleanup",
+  "tests": {
+    "requirement_evaluation_positive_control": true,
+    "adhoc_hashes_change": true,
+    "adhoc_identity_breaks": true
+  },
+  "signatures": {
+    "adhoc-a": {
+      "dr": "cdhash H\"35c14f51b2b21f3fe610678185187908aed92ea9\"",
+      "cdhash": "35c14f51b2b21f3fe610678185187908aed92ea9",
+      "details": "# designated => cdhash H\"35c14f51b2b21f3fe610678185187908aed92ea9\"\nExecutable=[temporary]/adhoc-a.app/Contents/MacOS/Probe\nIdentifier=io.github.annecat-bit.signing-research\nFormat=app bundle with Mach-O thin (arm64)\nCodeDirectory v=20500 size=327 flags=0x10002(adhoc,runtime) hashes=3+3 location=embedded\nVersionPlatform=1\nVersionMin=851968\nVersionSDK=1705216\nHash type=sha256 size=32\nCandidateCDHash sha256=35c14f51b2b21f3fe610678185187908aed92ea9\nCandidateCDHashFull sha256=35c14f51b2b21f3fe610678185187908aed92ea935b11f64d0731b793dc5e1e3\nHash choices=sha256\nCMSDigest=35c14f51b2b21f3fe610678185187908aed92ea935b11f64d0731b793dc5e1e3\nCMSDigestType=2\nExecutable Segment base=0\nExecutable Segment limit=16384\nExecutable Segment flags=0x1\nPage size=16384\nCDHash=35c14f51b2b21f3fe610678185187908aed92ea9\nSignature=adhoc\nInfo.plist entries=7\nTeamIdentifier=not set\nRuntime Version=26.5.0\nSealed Resources version=2 rules=13 files=1\n"
+    },
+    "adhoc-b": {
+      "dr": "cdhash H\"f7a12811a4ad028e510e78ee10c4404d607bb0a7\"",
+      "cdhash": "f7a12811a4ad028e510e78ee10c4404d607bb0a7",
+      "details": "# designated => cdhash H\"f7a12811a4ad028e510e78ee10c4404d607bb0a7\"\nExecutable=[temporary]/adhoc-b.app/Contents/MacOS/Probe\nIdentifier=io.github.annecat-bit.signing-research\nFormat=app bundle with Mach-O thin (arm64)\nCodeDirectory v=20500 size=327 flags=0x10002(adhoc,runtime) hashes=3+3 location=embedded\nVersionPlatform=1\nVersionMin=851968\nVersionSDK=1705216\nHash type=sha256 size=32\nCandidateCDHash sha256=f7a12811a4ad028e510e78ee10c4404d607bb0a7\nCandidateCDHashFull sha256=f7a12811a4ad028e510e78ee10c4404d607bb0a73598a3b923b47e9b734ac84f\nHash choices=sha256\nCMSDigest=f7a12811a4ad028e510e78ee10c4404d607bb0a73598a3b923b47e9b734ac84f\nCMSDigestType=2\nExecutable Segment base=0\nExecutable Segment limit=16384\nExecutable Segment flags=0x1\nPage size=16384\nCDHash=f7a12811a4ad028e510e78ee10c4404d607bb0a7\nSignature=adhoc\nInfo.plist entries=7\nTeamIdentifier=not set\nRuntime Version=26.5.0\nSealed Resources version=2 rules=13 files=1\n"
+    }
+  },
+  "privateKeysExportedToArtifact": false,
+  "system": "ProductName:\t\tmacOS\nProductVersion:\t\t26.7.2\nBuildVersion:\t\t25G332",
+  "architecture": "arm64",
+  "adhoc": {
+    "bSatisfiesA": {
+      "satisfied": false,
+      "exitCode": 3,
+      "output": "test-requirement: code failed to satisfy specified code requirement(s)\n"
+    },
+    "aSatisfiesB": {
+      "satisfied": false,
+      "exitCode": 3,
+      "output": "test-requirement: code failed to satisfy specified code requirement(s)\n"
+    }
+  },
+  "keychainIdentityDiscovery": "\nPolicy: Code Signing\n  Matching identities\n  1) DDB0E12E5E9C9A6EC27EAFC63EAC880B65E73EAC \"Sage Keys Disposable Research\" (CSSMERR_TP_NOT_TRUSTED)\n     1 identities found\n\n  Valid identities only\n     0 valid identities found\n",
+  "withoutCodeSigningTrust": {
+    "exitCode": 1,
+    "output": "DDB0E12E5E9C9A6EC27EAFC63EAC880B65E73EAC: no identity found\n"
+  },
+  "afterPolicyIdentityDiscovery": "\nPolicy: Code Signing\n  Matching identities\n  1) DDB0E12E5E9C9A6EC27EAFC63EAC880B65E73EAC \"Sage Keys Disposable Research\"\n     1 identities found\n\n  Valid identities only\n  1) DDB0E12E5E9C9A6EC27EAFC63EAC880B65E73EAC \"Sage Keys Disposable Research\"\n     1 valid identities found\n",
+  "certificatePolicyEvaluation": {
+    "exitCode": 0,
+    "output": "...certificate verification successful.\n"
+  },
+  "result": "blocked",
+  "error": "sign persistent-a failed: DDB0E12E5E9C9A6EC27EAFC63EAC880B65E73EAC: no identity found\n",
+  "cleanup": {
+    "keychainDeletionExitCode": 0,
+    "temporaryDirectoryRemoved": true,
+    "fallbackTrustRemovalExitCodes": [
+      124
+    ],
+    "trustRemoved": false
+  }
+}

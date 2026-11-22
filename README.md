@@ -52,4 +52,6 @@ GitHub Pages 從 `main` 的 `/(root)` 發布，沒有建置步驟。網站使用
 
 ## Sage Keys for Mac
 
+原生版更新暫停於 v0.2.4，正在研究輸入監察與跨版本簽署身分。網頁版維持原狀。[簽署研究與驗證](research/signing/README.md)
+
 Apple Silicon 個人測試版使用 AppKit 非啟用式浮窗與本機 WKWebView，可離線運作。v0.2.4 提供標準 DMG，透過 Finder 拖入 Applications 安裝，啟動時分開檢查安裝位置與輸入監察。每次啟動同步仍預設關閉，未授權時仍可試敲鍵帽及播放錄音。這是未經 Developer ID 簽署或公證的個人測試版，DMG 不保證沿用舊版系統授權。[Mac DMG 下載及安裝](macos/README.md) · [Finder 實測與限制](macos/INSTALL-v0.2.4.md)

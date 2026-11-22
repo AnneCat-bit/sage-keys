@@ -1,5 +1,7 @@
 # Sage Keys for Mac
 
+**原生版本更新暫停於 v0.2.4。** 已安裝至 Applications 仍可能無法取得有效輸入監察權限；目前只研究持久簽署身分，不再以新版本或反覆重裝嘗試修復。[根因、候選方案與驗證紀錄](../research/signing/README.md)
+
 Sage 75 是一個 Apple Silicon 原生選單列桌寵，支援 macOS 13 或更新版本。以 AppKit 非啟用式小窗搭配系統 WKWebView，預設內容區 400 × 250。模型、字型與三組真實錄音均內置，可在離線時使用。[v0.2.4 DMG 安裝實測](INSTALL-v0.2.4.md) · [v0.2 效能紀錄](TESTING-v0.2.md) · [素材與授權](ASSETS.md) · [網頁工作室](https://annecat-bit.github.io/sage-keys/)
 
 ## 下載及安裝個人測試版
