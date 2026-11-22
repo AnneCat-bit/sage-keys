@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       previous_run:
-        description: "Optional successful Sage Keys run containing a previous personal-test ZIP for identity comparison"
+        description: "Optional run with the published 0.2.2 ZIP to reproduce the installed-app update lifecycle"
         type: string
         required: false
   push:
@@ -80,7 +80,7 @@ jobs:
         with:
           name: Sage-Keys-arm64-personal-test
           path: new-release
-      - name: Compare signed releases at the same installation path
+      - name: Exercise downloaded releases in Applications and compare their signing requirements
         run: bash macos/Tests/update-identity.sh old-release/Sage-Keys-arm64.zip new-release/Sage-Keys-arm64.zip
   settings-links:
     strategy:
