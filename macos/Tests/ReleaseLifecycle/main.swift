@@ -125,11 +125,9 @@ func run() throws {
     // Launch a separate copy only on the test machine to observe two live processes.
     let parallel=try open(installed,separateInstance:true)
     try require(parallel.processIdentifier != old.processIdentifier,"second instance not created")
-    try click(parallel,pet,"授權導覽")
-    try click(parallel,guide,"檢查安裝與授權")
-    try wait("old PID listed separately from installed copies"){
-        guard let view=window(parallel,guide) else {return false}
-        return elements(view).flatMap(strings).joined(separator:"\n").contains("其他執行程序   PID "+String(old.processIdentifier))
+    try wait("old PID blocks installation before permission"){
+        guard let view=window(parallel,"Sage Keys · 安裝") else {return false}
+        return elements(view).flatMap(strings).joined(separator:"\n").contains("PID "+String(old.processIdentifier))
     }
     try log(["step":"concurrent-processes","diagnosingPID":parallel.processIdentifier,"otherPID":old.processIdentifier])
     try quit(parallel)
@@ -151,7 +149,7 @@ func run() throws {
         guard let w=window(current,guide) else {return false}
         detail=elements(w).flatMap(strings).joined(separator:"\n")
         return detail.contains("proc_pidpath") && detail.contains(installed.path+"/Contents/MacOS/SageKeys") &&
-            detail.contains("PID "+String(current.processIdentifier)) && detail.contains("0.2.3 (5)")
+            detail.contains("PID "+String(current.processIdentifier)) && detail.contains(newVersion)
     }
     try require(detail.contains("目前執行位置已在「應用程式」") && detail.contains("未發現") &&
                 detail.contains("目前 CDHash 與上次有效時不同") && !detail.contains("將 App"),"misdiagnosed installed release")

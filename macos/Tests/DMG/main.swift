@@ -83,8 +83,7 @@ func capture(_ app:NSRunningApplication,_ name:String,_ destination:String) thro
 }
 func description(_ app:NSRunningApplication,_ title:String)->String {
     guard let view=window(app,title) else {return ""}
-    return elements(view).flatMap(strings).joined(separator:"
-")
+    return elements(view).flatMap(strings).joined(separator:"\n")
 }
 func drag(_ from:CGPoint,_ to:CGPoint) {
     CGEvent(mouseEventSource:nil,mouseType:.leftMouseDown,mouseCursorPosition:from,mouseButton:.left)?.post(tap:.cghidEventTap)
@@ -105,6 +104,16 @@ func run() throws {
     let source=mount.appendingPathComponent("Sage Keys.app")
     let installTitle="Sage Keys · 安裝", guide="Sage Keys · 輸入監察導覽", pet="Sage 75"
     try require(!fm.fileExists(atPath:installed.path),"installation destination occupied")
+    let downloads=fm.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathComponent("Downloads")
+    try fm.createDirectory(at:downloads,withIntermediateDirectories:true)
+    defer {try? fm.removeItem(at:downloads.deletingLastPathComponent())}
+    let loose=downloads.appendingPathComponent("Sage Keys.app")
+    try fm.copyItem(at:source,to:loose)
+    let looseApp=try open(loose)
+    try wait("download location gate"){window(looseApp,installTitle) != nil}
+    try require(window(looseApp,guide)==nil,"download requested permission")
+    try log(["step":"download-folder","installationGate":true,"path":looseApp.executableURL?.path ?? ""])
+    try quit(looseApp)
     let fromDMG=try open(source)
     try wait("installation gate for DMG"){window(fromDMG,installTitle) != nil}
     try require(window(fromDMG,guide)==nil,"DMG entered permission flow")
@@ -131,8 +140,7 @@ func run() throws {
         AXValueGetValue(pos as! AXValue,.cgPoint,&p);AXValueGetValue(size as! AXValue,.cgSize,&s)
         points[name]=CGPoint(x:p.x+s.width/2,y:p.y+min(s.height/2,48))
     }
-    try tree.joined(separator:"
-").write(toFile:evidence+"/finder-ax.txt",atomically:true,encoding:.utf8)
+    try tree.joined(separator:"\n").write(toFile:evidence+"/finder-ax.txt",atomically:true,encoding:.utf8)
     guard let from=points["Sage Keys.app"],let to=points["Applications"] else {throw CheckError("Finder icon geometry missing")}
     try require(from.x<to.x && abs(from.y-to.y)<10,"Finder arrangement")
     drag(from,to)
@@ -162,6 +170,7 @@ func run() throws {
     try require(AXUIElementPerformAction(item!,kAXPressAction as CFString) == .success,"diagnostic menu action")
     try wait("installed self diagnosis"){description(app,guide).contains("proc_pidpath")}
     let text=description(app,guide)
+    try require(text.contains("本次同步已關閉") || description(app,pet).contains("同步已關閉"),"automatic synchronization")
     try require(text.contains(installed.path+"/Contents/MacOS/SageKeys"),"actual installed path")
     try capture(app,guide,evidence+"/installed-diagnostic.png")
     try log(["step":"installed-relaunch","path":app.executableURL?.path ?? "",

@@ -558,7 +558,11 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         if !armed {paused=false;notice=nil;display.setPaused(false)}
         refresh()
     }
-    @objc private func hide() {pauseAll("已隱藏");dismissGuide();panel.orderOut(nil)}
+    @objc private func hide() {
+        pauseAll("已隱藏");dismissGuide()
+        installationNotice?.window?.orderOut(nil);installationNotice=nil
+        panel.orderOut(nil)
+    }
     func windowShouldClose(_ sender:NSWindow)->Bool {hide();return false}
     func windowDidMiniaturize(_ notification:Notification){pauseAll("已縮小")}
     func windowDidDeminiaturize(_ notification:Notification) {show()}
