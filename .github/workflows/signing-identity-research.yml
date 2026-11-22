@@ -1,0 +1,25 @@
+name: Signing identity research (no App release)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  disposable-identity:
+    strategy:
+      matrix:
+        os: [macos-15, macos-26]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Compare default code requirements with disposable identities
+        run: python3 research/signing/probe.py "$RUNNER_TEMP/signing-evidence"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: signing-identity-evidence-${{ matrix.os }}
+          path: ${{ runner.temp }}/signing-evidence/result.json
+          if-no-files-found: error
+          retention-days: 30
