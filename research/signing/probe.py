@@ -30,6 +30,7 @@ def run(args,label,required=True):
     try:
         p=subprocess.run(list(map(str,args)),capture_output=True,text=True,env=env,timeout=45)
     except subprocess.TimeoutExpired:
+        if not required:return 124,label+' timed out'
         raise RuntimeError(label+' timed out') from None
     text=(p.stdout+p.stderr).replace(password,'[redacted]')
     if required and p.returncode:
@@ -114,7 +115,7 @@ try:
     before_code,before_text=run(['/usr/bin/codesign','--force','--sign',one,'--keychain',keychain,'--timestamp=none',a],'sign before policy approval',required=False)
     report['withoutCodeSigningTrust']={'exitCode':before_code,'output':before_text.replace(str(work),'[temporary]')}
     trusted_certificates.append(cert)
-    run(['/usr/bin/sudo','-n','/usr/bin/security','add-trusted-cert','-d','-r','trustRoot','-p','codeSign','-k',keychain,cert],'approve only test signer for code signing on disposable runner')
+    run(['/usr/bin/sudo','-n','/usr/bin/security','add-trusted-cert','-d','-r','trustRoot','-p','codeSign','-k','/Library/Keychains/System.keychain',cert],'approve only test signer for code signing on disposable runner')
     da,ha=sign(a,one)
     run(['/usr/bin/security','lock-keychain',keychain],'lock between builds')
     run(['/usr/bin/security','unlock-keychain','-p',password,keychain],'reopen the same identity')
@@ -125,7 +126,7 @@ try:
     check('same_identity_mutually_satisfies_dr',all(x['satisfied'] for x in report['persistent'].values()))
     two,cert2=identity('same-name-new-identity')
     trusted_certificates.append(cert2)
-    run(['/usr/bin/sudo','-n','/usr/bin/security','add-trusted-cert','-d','-r','trustRoot','-p','codeSign','-k',keychain,cert2],'approve negative control signer for code signing')
+    run(['/usr/bin/sudo','-n','/usr/bin/security','add-trusted-cert','-d','-r','trustRoot','-p','codeSign','-k','/Library/Keychains/System.keychain',cert2],'approve negative control signer for code signing')
     report['certificateSHA1']={'original':one,'sameNameNewKey':two}
     check('same_name_is_not_same_identity',one!=two)
     impostor=fixture('same-name-new-key','2');sign(impostor,two)
@@ -146,6 +147,8 @@ try:
 except Exception as e:
     report['result']='blocked';report['error']=str(e).replace(password,'[redacted]')
 finally:
+    # Preserve the primary diagnosis even if OS cleanup is unable to complete.
+    (out/'result.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
     removals=[]
     for cert in trusted_certificates:
         removals.append(run(['/usr/bin/sudo','-n','/usr/bin/security','remove-trusted-cert','-d',cert],'cleanup test certificate trust',required=False)[0])
