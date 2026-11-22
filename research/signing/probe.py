@@ -51,8 +51,8 @@ x509_extensions=ext
 [dn]
 CN=Sage Keys Disposable Research
 [ext]
-basicConstraints=critical,CA:FALSE
-keyUsage=critical,digitalSignature
+basicConstraints=critical,CA:TRUE
+keyUsage=critical,digitalSignature,keyCertSign
 extendedKeyUsage=critical,codeSigning
 ''')
     cert=folder/'cert.pem';key=folder/'key.pem';p12=folder/'identity.p12'
@@ -116,6 +116,9 @@ try:
     report['withoutCodeSigningTrust']={'exitCode':before_code,'output':before_text.replace(str(work),'[temporary]')}
     trusted_certificates.append(cert)
     run(['/usr/bin/sudo','-n','/usr/bin/security','add-trusted-cert','-d','-r','trustRoot','-p','codeSign','-k','/Library/Keychains/System.keychain',cert],'approve only test signer for code signing on disposable runner')
+    report['afterPolicyIdentityDiscovery']=run(['/usr/bin/security','find-identity','-p','codesigning',keychain],'inspect identity after policy approval')[1].replace(str(work),'[temporary]')
+    code,text=run(['/usr/bin/security','verify-cert','-c',cert,'-p','codeSign'],'evaluate code-signing certificate',required=False)
+    report['certificatePolicyEvaluation']={'exitCode':code,'output':text.replace(str(work),'[temporary]')}
     da,ha=sign(a,one)
     run(['/usr/bin/security','lock-keychain',keychain],'lock between builds')
     run(['/usr/bin/security','unlock-keychain','-p',password,keychain],'reopen the same identity')
