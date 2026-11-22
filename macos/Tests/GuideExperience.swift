@@ -39,7 +39,7 @@ extension GuideChecks {
     func usability() async throws -> [String:Any] {
         guard let w=window else {throw Failure("no guide")}
         let normal=w.contentView!.bounds.size
-        try press("調整字級");try press("調整字級")
+        try option("調整字級");try option("調整字級")
         let large=descendants(w.contentView!).compactMap {($0 as? NSTextField)?.font?.pointSize}.max() ?? 0
         try require(large>=34,"150% heading")
         for size in [NSSize(width:356,height:295),NSSize(width:640,height:600)] {
@@ -47,8 +47,8 @@ extension GuideChecks {
             try await Task.sleep(nanoseconds:180_000_000)
             try checkLayout()
         }
-        w.setContentSize(normal);try press("調整字級");try checkLayout()
-        let first=try button("在 Finder 顯示目前版本")
+        w.setContentSize(normal);try option("調整字級");try checkLayout()
+        let first=try button("返回導覽")
         guard let next=first.nextKeyView as? NSButton else {throw Failure("key view loop")}
         try require(w.makeFirstResponder(first),"focus initial button")
         func tab(_ flags:NSEvent.ModifierFlags) throws {

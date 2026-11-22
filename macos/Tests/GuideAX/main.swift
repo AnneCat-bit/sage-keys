@@ -16,8 +16,8 @@ while let el=todo.popLast() {
     let strings=[kAXTitleAttribute,kAXDescriptionAttribute,kAXValueAttribute].compactMap {get(el,$0) as? String}
     if role == "AXButton" && strings.contains("重新檢查權限"){checked=true}
     if role == "AXImage" && strings.contains(where:{$0.contains("放大鏡")}){image=true}
-    if strings.contains("已開啟，但尚未生效"){heading=true}
+    if strings.contains("檢查安裝與授權"){heading=true}
     todo += get(el,kAXChildrenAttribute) as? [AXUIElement] ?? []
 }
-let result=["existingQAAccess":trusted,"recheckButton":checked,"illustrationDescription":image,"mismatchHeading":heading]
+let result=["existingQAAccess":trusted,"recheckButton":checked,"illustrationDescription":image,"diagnosticHeading":heading]
 print(String(decoding:try JSONEncoder().encode(result),as:UTF8.self))

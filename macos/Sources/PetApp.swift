@@ -38,13 +38,13 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
     private var protectionTimer: Timer?
     private let progress = PermissionProgress()
     private var guide: PermissionGuide?
-    private var reportedAtLaunch = false
+    private var handledReopen = false
+    private let launchHash = InstallationCheck.runningHash()
     private var recordedSigningHash = false
     private var channelFailed = false
     private var oneTimeTarget: NSRunningApplication?
     private var oneTimeSignature: TrustedApp?
     private var needsPermissionHelp = false
-    private var restoringGuide = true
     private var selectingTarget = false
     private var consentGeneration = 0
     private var terminationReplyPending = false
@@ -55,7 +55,6 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
     private var demoWork: DispatchWorkItem?
 
     func applicationDidFinishLaunching(_ notification:Notification) {
-        reportedAtLaunch = progress.switchReportedOn
         prefs.register(defaults:["eco":true,"pinned":true,"muted":false,"top":false,"tone":"rainy"])
         let resources=Bundle.main.resourceURL!.appendingPathComponent("Pet")
         #if SAGE_QA
@@ -80,10 +79,6 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         display.onReady={ [weak self] value in
             guard let self = self else {return}
             self.mode=value; self.refresh()
-            if self.restoringGuide {
-                self.restoringGuide=false
-                if self.progress.resumeOnLaunch {self.openGuide()}
-            }
         }
         display.onFailure={ [weak self] message in self?.pauseAll(message) }
         observeSystem()
@@ -283,6 +278,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
 
     private func dismissGuide() {
         guide?.dismiss()
+        guide = nil
         panel.level = prefs.bool(forKey:"pinned") ? .floating : .normal
     }
 
@@ -305,11 +301,10 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
     @objc private func openGuide() {
         guard !closing else {return}
         if armed {pauseAll("已暫停同步")}
-        if progress.pending != nil {progress.resumeNextLaunch(true)}
-        else if !monitor.hasAccess {progress.stage(.help)}
+        if progress.pending == nil && !monitor.hasAccess {progress.stage(.help)}
         if guide == nil {
             let view = PermissionGuide()
-            view.inspect = { [weak self] in InstallationCheck(previousHash:self?.progress.lastAuthorizedHash,previousBuild:self?.progress.lastAuthorizedBuild) }
+            view.inspect = { [weak self] in InstallationCheck(previousHash:self?.progress.lastAuthorizedHash,previousBuild:self?.progress.lastAuthorizedBuild,launchHash:self?.launchHash,reopened:self?.handledReopen ?? false) }
             view.reportSwitch = { [weak self] on in
                 self?.progress.switchReportedOn = on
                 self?.updateGuide()
@@ -326,18 +321,16 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
             }
             view.later = { [weak self] in
                 guard let self = self else {return}
-                self.progress.resumeNextLaunch(false)
                 if self.progress.pending == .help || (self.progress.pending == .once && self.oneTimeTarget?.isTerminated != false) {
                     self.clearDraft()
                 } else {
                     self.dismissGuide()
                 }
-                self.refresh()
+                self.show()
             }
             view.quitToApply = { [weak self] in
                 guard let self = self else {return}
                 if self.progress.pending == nil {self.progress.stage(.help)}
-                self.progress.resumeNextLaunch(true)
                 self.quit()
             }
             guide = view
@@ -356,7 +349,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
     private func updateGuide(_ hint: String = "") {
         let reading = monitor.accessReading
         let status = reading.status
-        if reading.preflight {progress.switchReportedOn=false;reportedAtLaunch=false}
+        if reading.preflight {progress.switchReportedOn=false}
         needsPermissionHelp = status != .granted || channelFailed
         let permission = progress.statusText(status)
         var target: String
@@ -375,7 +368,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         }
         let message = hint.isEmpty && channelFailed ? "上次權限檢查通過，但事件監測未能建立。請核對安裝副本，退出再開。" : hint
         guide?.update(status:permission, target:target, reading:reading, reported:progress.switchReportedOn,
-                      reopened:reportedAtLaunch, canStart:reading.preflight && canConfirm && display.ready, hint:message)
+                      canStart:reading.preflight && canConfirm && display.ready, hint:message)
         refresh()
     }
 
@@ -533,7 +526,9 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         #if SAGE_QA
         reopenCount += 1
         #endif
-        if panelShown {panel.orderFrontRegardless()} else {show()}
+        handledReopen = true
+        if guide?.window?.isVisible == true {dismissGuide()}
+        show()
         return false
     }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender:NSApplication) -> Bool {false}

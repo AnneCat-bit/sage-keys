@@ -19,6 +19,26 @@ struct GuideChecks {
     func press(_ title: String) throws {
         let b = try button(title); try require(b.isEnabled,"unexpected disabled button "+title);b.performClick(nil)
     }
+    func option(_ title:String) throws {
+        let b = try button("其他操作")
+        guard let menu=b.menu, let i=menu.items.firstIndex(where:{$0.title == title}) else {throw Failure("missing option "+title)}
+        menu.performActionForItem(at:i)
+    }
+    func guideText() -> String {
+        guard let view=window?.contentView else {return ""}
+        return descendants(view).compactMap {($0 as? NSTextField)?.stringValue}.joined(separator:"\n")
+    }
+    func preview() async throws {
+        let web=daily.pet.display.web
+        let before = try await web.evaluateJavaScript("[qa.draws,qa.starts]") as! [Int]
+        try daily.menu("試敲空白鍵")
+        for _ in 0..<45 {
+            try await Task.sleep(nanoseconds:60_000_000)
+            let after = try await web.evaluateJavaScript("[qa.draws,qa.starts]") as! [Int]
+            if after[0]>before[0] && after[1]>before[1] {try off();return}
+        }
+        throw Failure("local preview did not animate and play audio")
+    }
     func off() throws {
         try require(!daily.pet.qaArmed && !daily.pet.qaMonitoring && !daily.pet.qaWatching, "guide unexpectedly enabled monitoring")
     }
@@ -63,7 +83,7 @@ struct GuideChecks {
             endpoint.simulateDenied=true;endpoint.grantOnRequest=true
             try await consent(editor,remember:false)
             try require(endpoint.requests == 1 && endpoint.hasAccess,"first simulated grant")
-            try press("重新檢查權限");try off()
+            try off()
             try press("確認並開始本次同步")
             _ = try await daily.focus(editor);try await daily.wait("manual start") {pet.qaActiveID == editor}
             try daily.menu("立即暫停")
@@ -76,7 +96,7 @@ struct GuideChecks {
             try await daily.wait("granted but channel failed") {!pet.qaArmed && pet.qaStatus.contains("事件監測未能啟動")}
             try off();try daily.menu("開啟本次")
             try await daily.wait("tap failure opens diagnostics") {(try? button("返回導覽")) != nil}
-            try press("稍後再說")
+            try press("繼續使用桌寵")
             endpoint.channelAvailable=true
             _ = try await daily.focus(editor)
             try daily.menu("開啟本次")
@@ -89,24 +109,23 @@ struct GuideChecks {
             try await consent(calc,remember:true)
             guard case .remembered(let saved) = PermissionProgress().pending else {throw Failure("missing pending consent")}
             try require(saved.bundleID == calc && TrustedApps().entries == initial, "draft changed trust")
+            try require(controls(window!.contentView!).count == 2, "crowded denial route")
+            try press("檢查安裝與授權")
             try press("重新檢查權限")
-            try require((try? button("確認並開始本次同步"))?.isEnabled != true && endpoint.requests == 2,"recheck requested or armed")
-            try press("稍後再說")
-            try require(window == nil && !PermissionProgress().resumeOnLaunch, "defer")
-            try off()
-            try daily.menu("輸入監察授權導覽")
-            try press("打開輸入監察設定")
+            try require((try? button("確認並開始本次同步")) == nil && endpoint.requests == 2,"recheck requested or armed")
+            window?.performClose(nil)
+            try require(window == nil && TrustedApps().entries == initial, "red close lost trust")
+            try await preview()
+            try daily.menu("檢查安裝與授權")
+            try option("打開輸入監察設定")
             try await daily.wait("Settings foreground from guide button") {
                 NSWorkspace.shared.frontmostApplication?.bundleIdentifier == "com.apple.systempreferences"
             }
             try off()
-            try daily.menu("輸入監察授權導覽")
-            try await capture("status")
-            try press("尚未開啟或找不到");try await capture("settings")
-            try press("開關已開，仍無法同步");try off()
-            try require(PermissionProgress().switchReportedOn && (try? button("確認並開始本次同步"))?.isEnabled != true,"reported switch granted access")
-            try press("重新檢查權限");try await capture("repair")
-            try press("如何重新加入新版");try await capture("replace")
+            try daily.menu("檢查安裝與授權")
+            try option("開關已開，仍無法同步")
+            try require(PermissionProgress().switchReportedOn && controls(window!.contentView!).count == 2,"switch report changed access or actions")
+            try await capture("repair")
             try press("檢查安裝與授權");try await capture("installation")
             // Launch Services can coalesce identical registrations. The installed-copy
             // check must also find the exact name in either Applications directory.
@@ -116,21 +135,36 @@ struct GuideChecks {
             try FileManager.default.copyItem(at:Bundle.main.bundleURL,to:duplicate)
             defer {try? FileManager.default.removeItem(at:duplicate)}
             try require(LSRegisterURL(duplicate as CFURL,true) == noErr,"register isolated duplicate")
+            _ = try await daily.focus(editor)
+            NSApp.activate(ignoringOtherApps:true);window?.makeKeyAndOrderFront(nil)
+            try await daily.wait("current AppKit diagnostic sees newly installed copy on focus") {guideText().contains(duplicate.path)}
+            try FileManager.default.removeItem(at:duplicate)
+            try press("重新檢查權限")
+            try require(!guideText().contains(duplicate.path),"diagnosis kept removed copy")
+            let partial="/private/var/folders/aa/test/T/AppTranslocation/"
+            let suffix=UUID().uuidString+"/d/Sage Keys.app/Contents/MacOS/SageKeys"
+            try require(InstallationCheck.hasTranslocationLayout(URL(fileURLWithPath:partial+suffix)),"typical translocation layout")
+            for path in ["/Applications/AppTranslocation/"+suffix, "/Downloads/AppTranslocation/"+suffix,partial+"misc/d/Sage Keys.app", "/Applications/Sage Keys.app"] {
+                try require(!InstallationCheck.hasTranslocationLayout(URL(fileURLWithPath:path)),"false translocation: "+path)
+            }
+            try FileManager.default.copyItem(at:Bundle.main.bundleURL,to:duplicate)
             let install=InstallationCheck(previousHash:"previous-fixture")
             try require(install.copies.contains {$0.standardizedFileURL.path == duplicate.resolvingSymlinksInPath().standardizedFileURL.path},"registered duplicate missing")
             try require(install.cdHash != nil && install.requirement != nil && install.validity == 0 && install.diskMatchesRunning == true && install.previousHashChanged,"running signature")
+            result["freshDiagnosis"]=["addedCopyOnFocus":true,"removedCopyOnRecheck":true,"pathPatternCases":5,"previewAfterClose":true]
             result["installation"]=["version":install.version,"fromApplications":install.inApplications,"signer":install.signer,"checkedRunningVsDisk":true,"realInstalledDuplicateDetected":true]
             result["API"]=["preflight":endpoint.accessReading.preflight,"HID":endpoint.accessReading.hid.rawValue,"lastRequest":endpoint.accessReading.request as Any]
             try press("返回導覽")
             try require(TrustedApps().entries == initial && !pet.qaMonitoring,"repair changed trust or armed")
             result["checks"]=["first grant needs manual start","channel failure with valid grant opens diagnostics; recovery needs manual restart","refused request preserved draft","verified real guide Settings button","blue switch reported / APIs denied / no tap","recovery pages","distinct running identity"]
         case "guide-restored":
-            try await daily.wait("guide restored") {window != nil}
-            try require(endpoint.requests == 0 && PermissionProgress().resumeOnLaunch,"restart asked OS")
+            try require(window == nil && pet.panel.isVisible && endpoint.requests == 0,"cold launch restored guide or asked OS")
+            try await preview()
+            try daily.menu("開啟本次");try await daily.wait("manual restore") {window != nil}
             guard case .remembered(let saved) = PermissionProgress().pending else {throw Failure("missing draft after restart")}
             try require(saved.bundleID==calc && !TrustedApps().entries.contains(saved),"premature grant")
             try require(PermissionProgress().switchReportedOn && endpoint.accessReading.hid == .granted && !endpoint.hasAccess, "missed contradictory state on restart")
-            try press("重新檢查權限");try off()
+            try press("檢查安裝與授權");try press("重新檢查權限");try off()
             try require((try? button("確認並開始本次同步"))?.isEnabled != true && endpoint.requests == 0, "HID grant bypassed CG")
             guard let guide=window else {throw Failure("no restored guide")}
             _ = try await daily.focus("com.apple.finder")
@@ -148,6 +182,8 @@ struct GuideChecks {
             PermissionProgress().stage(.remembered(TrustedApp(name:saved.name,bundleID:calc,signer:saved.signer,requirement:"never")))
             result["checks"]=["distinct launch, switch report and signed intent retained","HID granted with CG false kept blocked","return to guide reads fresh grant, stays disarmed","manual confirmation saves only calculator","Finder remains unapproved"]
         case "guide-mismatch":
+            try require(window == nil,"mismatch draft reopened on launch")
+            try daily.menu("開啟本次")
             try await daily.wait("mismatch guide") {window != nil}
             let before=TrustedApps().entries
             try press("確認並開始本次同步")
@@ -156,14 +192,14 @@ struct GuideChecks {
             result["checks"]=["mismatched signed requirement blocked despite granted permission","previous trust intact"]
         case "guide-accessibility":
             endpoint.simulateDenied=true;endpoint.missingStatus = .undetermined
-            try daily.menu("輸入監察授權導覽")
+            try daily.menu("檢查安裝與授權")
             try press("重新檢查權限");try off()
             try require((try? button("確認並開始本次同步"))?.isEnabled != true,"unknown status granted")
-            try press("開關已開，仍無法同步")
+            try option("開關已開，仍無法同步");try press("檢查安裝與授權")
             result["usability"] = try await usability()
         default: throw Failure("unexpected guide phase")
         }
         try JSONSerialization.data(withJSONObject:result,options:[.prettyPrinted,.sortedKeys]).write(to:evidence.appendingPathComponent(phase+".json"))
-        if phase == "guide-draft" {try press("退出並保留進度")} else {try daily.menu("退出 Sage Keys")}
+        if phase == "guide-draft" {try press("檢查安裝與授權");try option("退出並保留進度")} else {try daily.menu("退出 Sage Keys")}
     }
 }

@@ -1,10 +1,10 @@
 import AppKit
 
-enum GuidePage {case status, settings, repair, replace, success, installation}
+enum GuideIllustration {case status, settings, repair, replace, success, installation}
 
 // Original pen-and-wash illustrations. No animation, textures or GPU context.
 final class GuideDrawing: NSView {
-    let page: GuidePage
+    let page: GuideIllustration
     static let ink = NSColor(srgbRed:0.17,green:0.26,blue:0.20,alpha:1)
     static let paper = NSColor(srgbRed:0.975,green:0.967,blue:0.925,alpha:1)
     private let sage = NSColor(srgbRed:0.70,green:0.78,blue:0.66,alpha:1)
@@ -12,7 +12,7 @@ final class GuideDrawing: NSView {
     private let cream = NSColor(srgbRed:1.0,green:0.985,blue:0.92,alpha:1)
     private let gold = NSColor(srgbRed:0.91,green:0.79,blue:0.54,alpha:1)
     override var isFlipped: Bool {true}
-    init(_ page: GuidePage) {
+    init(_ page: GuideIllustration) {
         self.page=page;super.init(frame:.zero)
         setAccessibilityElement(true);setAccessibilityRole(.image)
         switch page {

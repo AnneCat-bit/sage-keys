@@ -1,5 +1,6 @@
 import AppKit
 import Security
+import Darwin
 import IOKit.hid
 
 struct AccessReading {
@@ -32,11 +33,19 @@ struct AccessReading {
 }
 
 struct InstallationCheck {
+    let executable: URL?
+    let pathSource: String
+    let reopened: Bool
+    let otherProcesses: [String]
+    let launchHash: String?
+    let onDiskHash: String?
+    let translocationEvidence: Bool
     let path: URL
     let version: String
     let bundleID: String
     let inApplications: Bool
     let copies: [URL]
+    let differentInstalledCopy: URL?
     let signer: String
     let cdHash: String?
     let requirement: String?
@@ -62,12 +71,41 @@ struct InstallationCheck {
               SecCodeCopyStaticCode(live, [], &representation) == errSecSuccess, let code = representation else {return nil}
         return hash(code)
     }
+    static func hasTranslocationLayout(_ url: URL) -> Bool {
+        // Use the OS temporary directory layout, UUID and read-only mount's d/ prefix.
+        // A folder merely named AppTranslocation elsewhere is not evidence.
+        let parts = canonical(url).pathComponents
+        guard let i=parts.firstIndex(of:"AppTranslocation"), i >= 5, i+3 < parts.count,
+              parts[i-1] == "T", UUID(uuidString:parts[i+1]) != nil, parts[i+2] == "d" else {return false}
+        return parts.starts(with:["/","private","var","folders"]) || parts.starts(with:["/","var","folders"])
+    }
+
+    private static func processExecutable() -> (URL?, String) {
+        var buffer = [CChar](repeating:0,count:4 * Int(MAXPATHLEN))
+        let size = buffer.count
+        let length = buffer.withUnsafeMutableBytes {proc_pidpath(getpid(),$0.baseAddress,UInt32(size))}
+        if length > 0 {return (canonical(URL(fileURLWithPath:String(cString:buffer))),"proc_pidpath")}
+        if let url = NSRunningApplication.current.executableURL {return (canonical(url),"NSRunningApplication")}
+        return (nil,"無法讀取執行檔路徑")
+    }
+
     // Only inspect our own bundle and known registrations for this bundle ID, on demand.
-    init(previousHash: String?, previousBuild: String? = nil) {
+    init(previousHash: String?, previousBuild: String? = nil, launchHash: String? = nil, reopened: Bool = false) {
         let b = Bundle.main
         self.previousBuild = previousBuild
         buildChanged = previousBuild != nil && previousBuild != b.object(forInfoDictionaryKey:"CFBundleVersion") as? String
-        let current = Self.canonical(b.bundleURL)
+        self.reopened = reopened
+        self.launchHash = launchHash
+        let (binary, source) = Self.processExecutable()
+        executable = binary
+        pathSource = source
+        let macOS = binary?.deletingLastPathComponent()
+        let contents = macOS?.deletingLastPathComponent()
+        let bundle = contents?.deletingLastPathComponent()
+        let current: URL
+        if macOS?.lastPathComponent == "MacOS", contents?.lastPathComponent == "Contents", let bundle=bundle, bundle.pathExtension == "app" {
+            current = bundle
+        } else {current = Self.canonical(b.bundleURL)}
         path = current
         version = (b.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "?") +
             " (" + (b.object(forInfoDictionaryKey:"CFBundleVersion") as? String ?? "?") + ")"
@@ -75,11 +113,16 @@ struct InstallationCheck {
         bundleID = id
         let appDirs = FileManager.default.urls(for:.applicationDirectory,in:[.localDomainMask,.userDomainMask])
         inApplications = appDirs.contains {current.path.hasPrefix(Self.canonical($0).path + "/")}
+        translocationEvidence = !inApplications && binary.map(Self.hasTranslocationLayout) == true
+        let running = NSRunningApplication.runningApplications(withBundleIdentifier:id)
+        otherProcesses = running.filter {$0.processIdentifier != getpid() && !$0.isTerminated}.map {
+            "PID \($0.processIdentifier) · \($0.bundleURL?.path ?? "路徑未能讀取")"
+        }
         let known = NSWorkspace.shared.urlsForApplications(withBundleIdentifier:id) +
-            NSRunningApplication.runningApplications(withBundleIdentifier:id).compactMap(\.bundleURL) +
+            running.compactMap(\.bundleURL) +
             appDirs.map {$0.appendingPathComponent(b.bundleURL.lastPathComponent)}
         let otherPaths = Set(known.map {Self.canonical($0).path}).subtracting([current.path])
-        copies = otherPaths.sorted().map {URL(fileURLWithPath:$0,isDirectory:true)}.filter {Bundle(url:$0)?.bundleIdentifier == id}
+        copies = otherPaths.sorted().map {URL(fileURLWithPath:$0,isDirectory:true)}.filter {FileManager.default.fileExists(atPath:$0.path) && Bundle(url:$0)?.bundleIdentifier == id}
         var live: SecCode?
         var disk: SecStaticCode?
         var representation: SecStaticCode?
@@ -88,7 +131,7 @@ struct InstallationCheck {
         var string: CFString?
         var identity = "未能讀取"
         var valid: OSStatus?
-        var matches: Bool?
+        var diskDigest: String?
         var digest: String?
         if SecCodeCopySelf([], &live) == errSecSuccess, let live = live {
             valid = SecCodeCheckValidity(live, [], nil)
@@ -104,41 +147,62 @@ struct InstallationCheck {
                     _ = SecRequirementCopyString(dr,[],&string)
                 }
             }
-            if SecStaticCodeCreateWithPath(current as CFURL,[],&disk) == errSecSuccess, let disk = disk,
-               let diskHash = Self.hash(disk), let digest = digest {
-                matches = diskHash == digest && valid == errSecSuccess
-            }
+        }
+        if SecStaticCodeCreateWithPath(current as CFURL,[],&disk) == errSecSuccess, let disk=disk {
+            diskDigest = Self.hash(disk)
         }
         signer = identity; cdHash = digest; validity = valid
-        requirement = string as String?; diskMatchesRunning = matches
-        previousHashChanged = previousHash != nil && digest != nil && previousHash != digest
+        onDiskHash = diskDigest
+        requirement = string as String?; diskMatchesRunning = (launchHash ?? digest).flatMap {running in diskDigest.map {$0 == running}}
+        let loadedHash = launchHash ?? digest
+        previousHashChanged = previousHash != nil && loadedHash != nil && previousHash != loadedHash
+        differentInstalledCopy = copies.first {url in
+            guard let loadedHash=loadedHash,
+                  appDirs.contains(where:{url.path.hasPrefix(Self.canonical($0).path + "/")}) else {return false}
+            var other: SecStaticCode?
+            guard SecStaticCodeCreateWithPath(url as CFURL,[],&other) == errSecSuccess, let code=other,
+                  let hash=Self.hash(code) else {return false}
+            return hash != loadedHash
+        }
     }
-    var advice: String {
-        if diskMatchesRunning == false {return "執行中與磁碟上的簽署未能核對。先退出，再從「應用程式」打開已安裝的版本。"}
-        if path.pathComponents.contains("AppTranslocation") {return "macOS 從隔離的暫時位置啟動了這份 App。請退出，將 App 放進「應用程式」，再從 Finder 開啟。"}
-        if !inApplications {return "目前從「應用程式」以外的位置啟動。請退出，將要使用的副本放到「應用程式」，再從那裏開啟。"}
-        if !copies.isEmpty {return "找到其他同 Bundle ID 的副本。先在 Finder 核對正在執行的這份，再到設定選它。"}
-        if previousHashChanged {return "與先前取得權限時的簽署雜湊不同。若重開後仍無效，可在輸入監察重新選取這份 App。"}
-        if buildChanged {return "上次通過檢查的是另一個版本。若重開後開關仍然無效，請重新選取目前的 App。"}
-        return "開關可能仍對應舊簽署，或 macOS 需要重開程序。先核對這份 App，再退出、重開。"
+    var summary: String {
+        if translocationEvidence {
+            return "目前程序的執行路徑符合 macOS AppTranslocation 暫時掛載格式。\n" + (executable?.path ?? path.path)
+        }
+        if diskMatchesRunning == false {
+            return "這個程序與磁碟上這份 App 的簽署雜湊不同。舊程序可能仍在運行。\n" + path.path
+        }
+        if !inApplications, let installed=differentInstalledCopy {
+            return "此程序仍從另一個位置執行。已安裝的副本簽署雜湊不同。\n執行中：\(path.path)\n已安裝：\(installed.path)"
+        }
+        if inApplications {return "目前執行位置已在「應用程式」。\n" + path.path}
+        return "目前執行位置：\n" + path.path
     }
     func details(_ reading: AccessReading) -> String {
         let other = copies.isEmpty ? "未找到其他已登記副本" : copies.map(\.path).joined(separator:"\n")
-        let match = diskMatchesRunning.map {$0 ? "一致" : "未能核對"} ?? "未能確定"
+        let match = diskMatchesRunning.map {$0 ? "一致" : "不同"} ?? "未能確定"
         return """
+        程序   PID \(getpid()) · \(reopened ? "本程序已收到重新開啟事件" : "本程序未收到重新開啟事件")
+        其他執行程序   \(otherProcesses.isEmpty ? "未發現" : otherProcesses.joined(separator:"\n"))
         版本   \(version)
         位置   \(inApplications ? "應用程式" : "其他位置")
         \(path.path)
+        執行檔（\(pathSource)）   \(executable?.path ?? "未能讀取，以上顯示 bundle 路徑")
+        暫時掛載路徑特徵   \(translocationEvidence ? "符合 /var/folders/…/T/AppTranslocation/<UUID>/d/ 及執行檔路徑" : "未發現")
         Bundle ID   \(bundleID)
         簽署   \(signer)
         CDHash   \(cdHash ?? "未能讀取")
+        啟動時 CDHash   \(launchHash ?? "未能讀取")
+        磁碟 CDHash   \(onDiskHash ?? "未能讀取")
         簽署要求   \(requirement ?? "未能讀取")
         簽署檢查 OSStatus   \(validity.map { String($0) } ?? "未能確定")
         執行中與磁碟身分   \(match)
         上次權限有效的 build   \(previousBuild ?? "沒有紀錄")
         \(previousHashChanged ? "目前 CDHash 與上次有效時不同。" : "")
+        \(buildChanged ? "上次通過系統授權檢查的是另一個 build。" : "")
         其他已登記副本   \(other)
 
+        目前系統權限   \(reading.preflight ? "有效" : previousBuild != nil ? "過去曾有效，本程序目前未通過；原因無法由 API 判定" : "本程序目前未通過；原因無法由 API 判定")
         \(reading.details)
         """
     }

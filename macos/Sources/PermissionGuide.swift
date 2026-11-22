@@ -19,6 +19,8 @@ final class PermissionProgress {
     init(_ defaults: UserDefaults = .standard, build: String = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown") {
         self.defaults = defaults
         self.build = build
+        // v0.2.2 armed this flag on every visit. Keep the draft, retire automatic presentation.
+        defaults.removeObject(forKey:"inputGuide.resume")
         pending = defaults.data(forKey: key).flatMap {try? PropertyListDecoder().decode(PendingConsent.self, from: $0)}
     }
 
@@ -31,16 +33,13 @@ final class PermissionProgress {
     func rememberHash(_ hash: String?) {
         if let hash = hash, hash != lastAuthorizedHash {defaults.set(hash,forKey:"inputGuide.lastGrantedHash")}
     }
-    var resumeOnLaunch: Bool {pending != nil && defaults.bool(forKey: "inputGuide.resume")}
     func stage(_ choice: PendingConsent) {
         if let data = try? PropertyListEncoder().encode(choice) {
             defaults.set(data, forKey: key)
             pending = choice
-            resumeNextLaunch(true)
         }
     }
-    func resumeNextLaunch(_ value: Bool) {defaults.set(value, forKey: "inputGuide.resume")}
-    func clear() {pending = nil; defaults.removeObject(forKey: key);resumeNextLaunch(false)}
+    func clear() {pending = nil; defaults.removeObject(forKey: key)}
     func observedGrant() {
         if defaults.string(forKey: "inputGuide.lastGrantedBuild") != build {
             defaults.set(build, forKey: "inputGuide.lastGrantedBuild")
@@ -49,7 +48,7 @@ final class PermissionProgress {
 
     func statusText(_ status: ListenStatus) -> String {
         if status == .granted {observedGrant();return "已取得輸入監察權限"}
-        if status == .inconsistent {return "系統權限回報不一致，目前無法同步。請重新檢查，必要時退出再開。"}
+        if status == .inconsistent {return "系統權限回報不一致，目前無法同步。桌寵可以繼續使用。"}
         if let past = defaults.string(forKey: "inputGuide.lastGrantedBuild") {
             return past == build ? "之前取得的權限目前未生效。" : "更新後，新版本目前沒有輸入監察權限。"
         }
@@ -109,14 +108,15 @@ private final class GuideButton: NSButton {
     }
 }
 
+private enum GuidePage {case status, repair, installation, success}
+
 final class PermissionGuide: NSWindowController, NSWindowDelegate {
     private let scroll = NSScrollView()
     private let sheet = GuideSheet()
     private var page = GuidePage.status
     private var reading = AccessReading(preflight:false,hid:.unknown,request:nil)
-    private var install: InstallationCheck?
     private var statusText="", targetText="", hint=""
-    private var reported=false, authorized=false, canStart=false, reopened=false
+    private var reported=false, authorized=false, canStart=false
     private var zoom = 1.0
     private var buttons = [NSButton]()
     var recheck: () -> Void = {}
@@ -149,17 +149,16 @@ final class PermissionGuide: NSWindowController, NSWindowDelegate {
     func windowDidResize(_ note:Notification){sheet.arrange(width:scroll.contentSize.width)}
     func windowDidBecomeKey(_ note:Notification){recheck()}
     func present() {NSApp.activate(ignoringOtherApps:true);window?.makeKeyAndOrderFront(nil)}
-    func dismiss(){window?.orderOut(nil);install=nil}
+    func dismiss(){window?.orderOut(nil)}
     func windowShouldClose(_ sender:NSWindow)->Bool {later();return false}
 
-    func update(status:String,target:String,reading new:AccessReading,reported on:Bool,reopened:Bool,canStart:Bool,hint:String) {
+    func update(status:String,target:String,reading new:AccessReading,reported on:Bool,canStart:Bool,hint:String) {
         let before=page
         if new.preflight != authorized || (new.preflight && page == .status) {
-            if page != .installation {page = new.preflight ? .success : (on ? .repair:.status)}
+            page = new.preflight ? .success : (on ? .repair:.status)
         } else if !new.preflight && on && page == .status {page = .repair}
-        authorized=new.preflight;reading=new;reported=on;self.reopened=reopened
+        authorized=new.preflight;reading=new;reported=on
         self.canStart=canStart;statusText=status;targetText=target;self.hint=hint
-        if (page == .repair || page == .installation) && install == nil {install=inspect()}
         render(reset:page != before)
     }
 
@@ -174,6 +173,7 @@ final class PermissionGuide: NSWindowController, NSWindowDelegate {
         var row=[NSView]()
         for (i,entry) in entries.enumerated() {
             let b=GuideButton(title:entry.0,target:self,action:entry.1)
+            if entry.1 == #selector(more(_:)) {b.menu=optionsMenu()}
             b.bezelStyle = .rounded;b.font = .systemFont(ofSize:13*zoom,weight:.medium)
             if primary && i == 0 {b.bezelColor=NSColor(srgbRed:0.68,green:0.77,blue:0.63,alpha:1)}
             if entry.1 == #selector(start) {b.isEnabled=canStart}
@@ -187,59 +187,52 @@ final class PermissionGuide: NSWindowController, NSWindowDelegate {
         let offset=scroll.contentView.bounds.origin
         for v in sheet.subviews {v.removeFromSuperview()}
         sheet.rows.removeAll();buttons.removeAll()
-        let art=GuideDrawing(page);sheet.addSubview(art);sheet.rows.append([art])
+        // A render triggered by opening, returning or rechecking samples the live process anew.
+        // Resizing and scrolling only lay out existing views.
+        let snapshot = page == .success ? nil : inspect()
+        let illustration: GuideIllustration
         switch page {
-        case .status:
-            label("核對鍵盤監察權限",23,.semibold)
-            label(statusText)
-            label("你在「輸入監察」看到哪種情況？",15,.medium)
-            actions([("開關已開，仍無法同步",#selector(switchOn)),("尚未開啟或找不到",#selector(settingsPage))],primary:true)
-            actions([("打開輸入監察設定",#selector(openInput)),("檢查安裝與授權",#selector(diagnostics))])
-        case .settings:
-            label("找到 Sage Keys 的開關",23,.semibold)
-            label("系統設定  →  私隱與保安  →  輸入監察",16,.medium)
-            label("在列表找到 Sage Keys，親自開啟旁邊的開關。若系統要求退出，請保存進度再重開。")
-            actions([("直接打開設定",#selector(openInput)),("打開私隱與保安",#selector(openPrivacy))],primary:true)
-            actions([("開關已開，仍無法同步",#selector(switchOn)),("找不到目前版本",#selector(replacement))])
-        case .repair:
-            label("已開啟，但尚未生效",23,.semibold)
-            label("你回報開關已開。這份 Sage Keys 的權限檢查仍未通過，本次同步維持關閉。")
-            label(reopened ? "重開後仍未生效？核對授權的副本" : "先核對正在執行的副本",15,.semibold)
-            label(install?.advice ?? "")
-            if !reopened {label("已確認是同一份？先退出再重開。若仍未生效，可重新加入新版。")}
-            actions([("在 Finder 顯示目前版本",#selector(reveal)),("檢查安裝與授權",#selector(diagnostics))],primary:true)
-            actions([("退出並保留進度",#selector(quit)),("如何重新加入新版",#selector(replacement))])
-            actions([("打開輸入監察設定",#selector(openInput)),("修正開關回報",#selector(settingsPage))])
-        case .replace:
-            label("重新選取正在使用的版本",22,.semibold)
-            label("① 在 Finder 顯示這份 App，確認它在「應用程式」內。")
-            label("② 到輸入監察。若舊 Sage Keys 項目已失效，選取該項，按列表下方「−」。")
-            label("③ 按「＋」並選擇剛才核對的 Sage Keys。依系統提示退出，再從 Finder 打開同一份。")
-            actions([("在 Finder 顯示目前版本",#selector(reveal)),("打開輸入監察設定",#selector(openInput))],primary:true)
-            actions([("退出並保留進度",#selector(quit)),("檢查安裝與授權",#selector(diagnostics))])
+        case .status: illustration = reading.hid == .unknown ? .settings : .status
+        case .repair: illustration = .repair
+        case .installation: illustration = snapshot?.previousHashChanged == true ? .replace : .installation
+        case .success: illustration = .success
+        }
+        let art=GuideDrawing(illustration)
+        sheet.addSubview(art);sheet.rows.append([art])
+        switch page {
+        case .status, .repair:
+            label(reported ? "已開啟，但尚未生效" : "跨 App 同步暫未可用",23,.semibold)
+            label(reported ? "你看到開關已開。目前這個程序的權限檢查仍未通過。" : statusText)
+            if let snapshot = snapshot {label(snapshot.summary)}
+            if !hint.isEmpty {label(hint,13,.medium)}
+            label("3D 鍵盤及試聽可以照常使用。")
+            if !reported && reading.hid == .unknown {
+                actions([("打開輸入監察設定",#selector(openInput))],primary:true)
+                actions([("繼續使用桌寵",#selector(deferGuide)),("檢查安裝與授權",#selector(diagnostics))])
+            } else {
+                actions([("繼續使用桌寵",#selector(deferGuide))],primary:true)
+                actions([("檢查安裝與授權",#selector(diagnostics))])
+            }
         case .success:
             label("鍵盤監察權限已生效",23,.semibold)
-            label(canStart ? "macOS 已授權。現在可以確認並開始本次同步。" : "macOS 已授權。請選擇要同步的目標 App。")
+            label(canStart ? "macOS 已授權。確認後才會開始本次同步。" : "macOS 已授權。請選擇要同步的目標 App。")
             label(targetText)
-            actions([("確認並開始本次同步",#selector(start)),("重新選取 App",#selector(selectTarget))],primary:true)
+            if !hint.isEmpty {label(hint,13,.medium)}
+            if canStart {
+                actions([("確認並開始本次同步",#selector(start))],primary:true)
+            }
+            actions([("重新選取 App",#selector(selectTarget)),("繼續使用桌寵",#selector(deferGuide))],primary:!canStart)
         case .installation:
             label("檢查安裝與授權",23,.semibold)
-            label(authorized ? "系統授權有效 · 本次同步已關閉" : (reported ? "開關已開，這份 App 尚未取得有效權限" : statusText),15,.medium)
-            if let install=install {
-                if !authorized {label(install.advice)}
-                label(install.details(reading),12,.regular,technical:true)
+            label(authorized ? "系統權限有效 · 本次同步已關閉" : statusText,15,.medium)
+            if let snapshot = snapshot {
+                label(snapshot.summary)
+                label(snapshot.details(reading),12,.regular,technical:true)
             }
-            actions([("在 Finder 顯示目前版本",#selector(reveal)),("返回導覽",#selector(home))])
+            if !hint.isEmpty {label(hint,13,.medium)}
+            actions([("返回導覽",#selector(home))],primary:true)
+            actions([("重新檢查權限",#selector(check)),("其他操作",#selector(more(_:))),("繼續使用桌寵",#selector(deferGuide))])
         }
-        if !hint.isEmpty {label(hint,13,.medium)}
-        if page != .success {
-            actions([("重新檢查權限",#selector(check))])
-        } else {
-            actions([("重新檢查權限",#selector(check)),("檢查安裝與授權",#selector(diagnostics))])
-        }
-        var tools:[(String,Selector)]=[("稍後再說",#selector(deferGuide)),("調整字級",#selector(scaleText))]
-        if page != .repair && page != .replace {tools.append(("退出並保留進度",#selector(quit)))}
-        actions(tools)
         sheet.arrange(width:scroll.contentSize.width)
         let enabled=buttons.filter(\.isEnabled)
         for (i,b) in enabled.enumerated() {b.nextKeyView=enabled[(i+1)%enabled.count]}
@@ -252,14 +245,28 @@ final class PermissionGuide: NSWindowController, NSWindowDelegate {
         NSAccessibility.post(element:sheet,notification:.layoutChanged)
     }
 
-    private func move(_ next:GuidePage){page=next;hint="";if next == .repair || next == .installation {install=inspect()};render(reset:true)}
+    private func move(_ next:GuidePage){page=next;hint="";recheck()}
     @objc func diagnostics(){move(.installation)}
     @objc private func home(){move(authorized ? .success : (reported ? .repair:.status))}
-    @objc private func switchOn(){reportSwitch(true);move(authorized ? .success:.repair)}
-    @objc private func settingsPage(){reportSwitch(false);move(authorized ? .success:.settings)}
-    @objc private func replacement(){move(.replace)}
+    @objc private func switchOn(){reportSwitch(true);home()}
     @objc private func openInput(){openSettings(true)}
-    @objc private func openPrivacy(){openSettings(false)}
+    private func optionsMenu() -> NSMenu {
+        let menu=NSMenu()
+        let options:[(String,Selector)]=[
+            ("打開輸入監察設定",#selector(openInput)),
+            ("在 Finder 顯示目前版本",#selector(reveal)),
+            ("開關已開，仍無法同步",#selector(switchOn)),
+            ("調整字級",#selector(scaleText)),
+            ("退出並保留進度",#selector(quit))]
+        for (title,action) in options {
+            let item=menu.addItem(withTitle:title,action:action,keyEquivalent:"")
+            item.target=self
+        }
+        return menu
+    }
+    @objc private func more(_ sender:NSButton) {
+        sender.menu?.popUp(positioning:nil,at:NSPoint(x:0,y:sender.bounds.height),in:sender)
+    }
     private func openSettings(_ input:Bool) {
         switch SettingsLinks.open(inputPane:input) {
         case .input: hint="回來時會重新檢查。若只見設定首頁，請選「私隱與保安」→「輸入監察」。"
@@ -269,10 +276,9 @@ final class PermissionGuide: NSWindowController, NSWindowDelegate {
         render(reset:false)
     }
     @objc private func check(){
-        install=nil
         recheck()
         if !authorized {
-            hint = reported ? "剛剛已重新檢查。開關已開的回報已保留，這份 App 的權限仍未生效。" : "剛剛已重新檢查。若開關已開，請核對目前執行的版本。"
+            hint = "已讀取目前程序的路徑、簽署及權限。同步仍然關閉。"
             render(reset:false)
         }
         let announcement = authorized ? "系統權限有效，本次同步仍然關閉" : "這份 App 的權限尚未生效"
