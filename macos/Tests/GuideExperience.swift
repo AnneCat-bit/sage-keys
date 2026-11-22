@@ -48,7 +48,7 @@ extension GuideChecks {
             try checkLayout()
         }
         w.setContentSize(normal);try option("調整字級");try checkLayout()
-        let first=try button("返回導覽")
+        let first=try button("繼續使用桌寵")
         guard let next=first.nextKeyView as? NSButton else {throw Failure("key view loop")}
         try require(w.makeFirstResponder(first),"focus initial button")
         func tab(_ flags:NSEvent.ModifierFlags) throws {

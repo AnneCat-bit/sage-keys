@@ -124,7 +124,7 @@ func run() throws {
     try require(detail.contains("目前執行位置已在「應用程式」") && detail.contains("未發現") &&
                 detail.contains("目前 CDHash 與上次有效時不同") && !detail.contains("將 App"),"misdiagnosed installed release")
     try log(["step":"diagnostics","pid":current.processIdentifier,"executable":current.executableURL?.path ?? "",
-             "AppKitDiagnostic":detail.components(separatedBy:"\n").filter {$0.contains("執行檔（") || $0.contains("暫時掛載路徑特徵") || $0.contains("CGPreflightListenEventAccess") || $0.contains("IOHIDCheckAccess")}.suffix(4),
+             "AppKitDiagnostic":Array(detail.components(separatedBy:"\n").filter {$0.contains("執行檔（") || $0.contains("暫時掛載路徑特徵") || $0.contains("CGPreflightListenEventAccess") || $0.contains("IOHIDCheckAccess")}.suffix(4)),
              "signingChangeDetectedFromSeededGrant":true,"guideOnLaunch":false])
     try click(current,guide,"繼續使用桌寵")
     try wait("guide dismissed"){window(current,guide)==nil && window(current,pet) != nil}

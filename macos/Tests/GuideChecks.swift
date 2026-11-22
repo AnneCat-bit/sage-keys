@@ -117,7 +117,7 @@ struct GuideChecks {
             try require(window == nil && TrustedApps().entries == initial, "red close lost trust")
             try await preview()
             try daily.menu("檢查安裝與授權")
-            try option("打開輸入監察設定")
+            try press("打開輸入監察設定")
             try await daily.wait("Settings foreground from guide button") {
                 NSWorkspace.shared.frontmostApplication?.bundleIdentifier == "com.apple.systempreferences"
             }
@@ -154,7 +154,7 @@ struct GuideChecks {
             result["freshDiagnosis"]=["addedCopyOnFocus":true,"removedCopyOnRecheck":true,"pathPatternCases":5,"previewAfterClose":true]
             result["installation"]=["version":install.version,"fromApplications":install.inApplications,"signer":install.signer,"checkedRunningVsDisk":true,"realInstalledDuplicateDetected":true]
             result["API"]=["preflight":endpoint.accessReading.preflight,"HID":endpoint.accessReading.hid.rawValue,"lastRequest":endpoint.accessReading.request as Any]
-            try press("返回導覽")
+            try option("返回導覽")
             try require(TrustedApps().entries == initial && !pet.qaMonitoring,"repair changed trust or armed")
             result["checks"]=["first grant needs manual start","channel failure with valid grant opens diagnostics; recovery needs manual restart","refused request preserved draft","verified real guide Settings button","blue switch reported / APIs denied / no tap","recovery pages","distinct running identity"]
         case "guide-restored":

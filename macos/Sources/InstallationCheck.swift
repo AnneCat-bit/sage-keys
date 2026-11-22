@@ -40,6 +40,7 @@ struct InstallationCheck {
     let launchHash: String?
     let onDiskHash: String?
     let translocationEvidence: Bool
+    let volumeEvidence: String?
     let path: URL
     let version: String
     let bundleID: String
@@ -74,10 +75,13 @@ struct InstallationCheck {
     static func hasTranslocationLayout(_ url: URL) -> Bool {
         // Use the OS temporary directory layout, UUID and read-only mount's d/ prefix.
         // A folder merely named AppTranslocation elsewhere is not evidence.
-        let parts = canonical(url).pathComponents
-        guard let i=parts.firstIndex(of:"AppTranslocation"), i >= 5, i+3 < parts.count,
-              parts[i-1] == "T", UUID(uuidString:parts[i+1]) != nil, parts[i+2] == "d" else {return false}
-        return parts.starts(with:["/","private","var","folders"]) || parts.starts(with:["/","var","folders"])
+        var parts = canonical(url).pathComponents
+        if parts.starts(with:["/","private","var","folders"]) {parts.removeFirst(4)}
+        else if parts.starts(with:["/","var","folders"]) {parts.removeFirst(3)}
+        else {return false}
+        return parts.count >= 10 && parts[2] == "T" && parts[3] == "AppTranslocation" &&
+            UUID(uuidString:parts[4]) != nil && parts[5] == "d" &&
+            parts.suffix(3).starts(with:["Contents","MacOS"])
     }
 
     private static func processExecutable() -> (URL?, String) {
@@ -114,6 +118,10 @@ struct InstallationCheck {
         let appDirs = FileManager.default.urls(for:.applicationDirectory,in:[.localDomainMask,.userDomainMask])
         inApplications = appDirs.contains {current.path.hasPrefix(Self.canonical($0).path + "/")}
         translocationEvidence = !inApplications && binary.map(Self.hasTranslocationLayout) == true
+        if translocationEvidence, let volume = try? binary?.resourceValues(forKeys:[.volumeURLKey,.volumeIsReadOnlyKey]) {
+            let mode = volume.volumeIsReadOnly.map {$0 ? "唯讀" : "可寫"} ?? "讀寫狀態未知"
+            volumeEvidence = ((volume.allValues[.volumeURLKey] as? URL)?.path ?? "掛載點未知") + " · " + mode
+        } else {volumeEvidence = nil}
         let running = NSRunningApplication.runningApplications(withBundleIdentifier:id)
         otherProcesses = running.filter {$0.processIdentifier != getpid() && !$0.isTerminated}.map {
             "PID \($0.processIdentifier) · \($0.bundleURL?.path ?? "路徑未能讀取")"
@@ -189,6 +197,7 @@ struct InstallationCheck {
         \(path.path)
         執行檔（\(pathSource)）   \(executable?.path ?? "未能讀取，以上顯示 bundle 路徑")
         暫時掛載路徑特徵   \(translocationEvidence ? "符合 /var/folders/…/T/AppTranslocation/<UUID>/d/ 及執行檔路徑" : "未發現")
+        \(volumeEvidence.map {"檔案系統掛載點   " + $0} ?? "")
         Bundle ID   \(bundleID)
         簽署   \(signer)
         CDHash   \(cdHash ?? "未能讀取")

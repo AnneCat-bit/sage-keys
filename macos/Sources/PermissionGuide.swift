@@ -202,7 +202,7 @@ final class PermissionGuide: NSWindowController, NSWindowDelegate {
         switch page {
         case .status, .repair:
             label(reported ? "已開啟，但尚未生效" : "跨 App 同步暫未可用",23,.semibold)
-            label(reported ? "你看到開關已開。目前這個程序的權限檢查仍未通過。" : statusText)
+            label(reported ? "你曾回報開關已開。目前這個程序的權限檢查仍未通過。" : statusText)
             if let snapshot = snapshot {label(snapshot.summary)}
             if !hint.isEmpty {label(hint,13,.medium)}
             label("3D 鍵盤及試聽可以照常使用。")
@@ -225,13 +225,15 @@ final class PermissionGuide: NSWindowController, NSWindowDelegate {
         case .installation:
             label("檢查安裝與授權",23,.semibold)
             label(authorized ? "系統權限有效 · 本次同步已關閉" : statusText,15,.medium)
-            if let snapshot = snapshot {
-                label(snapshot.summary)
-                label(snapshot.details(reading),12,.regular,technical:true)
-            }
+            if let snapshot = snapshot {label(snapshot.summary)}
             if !hint.isEmpty {label(hint,13,.medium)}
-            actions([("返回導覽",#selector(home))],primary:true)
-            actions([("重新檢查權限",#selector(check)),("其他操作",#selector(more(_:))),("繼續使用桌寵",#selector(deferGuide))])
+            if authorized {
+                actions([("返回導覽",#selector(home))],primary:true)
+            } else {
+                actions([("繼續使用桌寵",#selector(deferGuide))],primary:true)
+            }
+            actions([("重新檢查權限",#selector(check)),("打開輸入監察設定",#selector(openInput)),("其他操作",#selector(more(_:)))])
+            if let snapshot = snapshot {label(snapshot.details(reading),12,.regular,technical:true)}
         }
         sheet.arrange(width:scroll.contentSize.width)
         let enabled=buttons.filter(\.isEnabled)
@@ -253,7 +255,7 @@ final class PermissionGuide: NSWindowController, NSWindowDelegate {
     private func optionsMenu() -> NSMenu {
         let menu=NSMenu()
         let options:[(String,Selector)]=[
-            ("打開輸入監察設定",#selector(openInput)),
+            ("返回導覽",#selector(home)),
             ("在 Finder 顯示目前版本",#selector(reveal)),
             ("開關已開，仍無法同步",#selector(switchOn)),
             ("調整字級",#selector(scaleText)),
