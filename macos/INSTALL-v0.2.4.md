@@ -35,6 +35,8 @@
 
 DMG 為 **791,445 bytes**，SHA-256：`1d2ad40b690ef0e3cc4269ae02174fe8b74a8d78484c8032dd296ca68155e8dc`。[校驗檔](evidence/v0.2.4/DMG-SHA256.txt) · [原始 DMG Artifact](https://github.com/AnneCat-bit/sage-keys/actions/runs/44979295414/artifacts/14737062804) · [完整測試 Artifact](https://github.com/AnneCat-bit/sage-keys/actions/runs/44979295414/artifacts/14736609413)
 
+發佈工作流程使用同一個已成功測試的 Artifact，只在發佈 job 授予本 repository 的 Contents write 及 Actions read。沒有重新編譯或簽署。從公開 Release 以無登入 HTTP 重新下載的 DMG，與測試 Artifact 逐位元組一致。[發佈紀錄](https://github.com/AnneCat-bit/sage-keys/actions/runs/44979839026) · [下載校驗](evidence/v0.2.4/download-verification.json) · [發佈驗證摘錄](evidence/v0.2.4/publish-excerpt.txt)
+
 ## 原有功能回歸
 
 16 組原生回歸全部通過，另有退出重啟、授權流程及無障礙檢查。以下明確區分真實系統行為與模擬事件，沒有在雲端代替使用者批准 TCC。[原始結果](evidence/v0.2.4/mac-results.json) · [測試 log](evidence/v0.2.4/native-tests.log)

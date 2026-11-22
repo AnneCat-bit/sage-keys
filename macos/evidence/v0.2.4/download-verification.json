@@ -1,0 +1,10 @@
+{
+  "url": "https://github.com/AnneCat-bit/sage-keys/releases/download/v0.2.4/Sage-Keys-Apple-Silicon.dmg",
+  "publicDownloadWithoutAuthentication": true,
+  "identicalToTestedArtifact": true,
+  "sizeBytes": 791445,
+  "sha256": "1d2ad40b690ef0e3cc4269ae02174fe8b74a8d78484c8032dd296ca68155e8dc",
+  "buildRun": 44979295414,
+  "publishRun": 44979839026,
+  "rebuiltForPublishing": false
+}
