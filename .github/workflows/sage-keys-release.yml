@@ -1,0 +1,51 @@
+name: Publish verified Sage Keys DMG
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  publish-personal-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: AnneCat-bit/sage-keys
+      TESTED_RUN: '44979295414'
+      TESTED_COMMIT: 60f9410429e6fb182f1f1424a783d385f2ce07dc
+      EXPECTED_SHA256: 1d2ad40b690ef0e3cc4269ae02174fe8b74a8d78484c8032dd296ca68155e8dc
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Require the successful tested source run
+        run: |
+          gh api "repos/$GH_REPO/actions/runs/$TESTED_RUN" > "$RUNNER_TEMP/tested-run.json"
+          python3 - <<'PY'
+          import json,os
+          run=json.load(open(os.environ['RUNNER_TEMP']+'/tested-run.json'))
+          assert run['head_sha']==os.environ['TESTED_COMMIT']
+          assert run['head_branch']=='main' and run['conclusion']=='success'
+          assert run['path']=='.github/workflows/sage-keys-macos.yml'
+          assert run['repository']['full_name']==os.environ['GH_REPO']
+          PY
+      - uses: actions/download-artifact@v4
+        with:
+          name: Sage-Keys-Apple-Silicon-DMG
+          path: verified-dmg
+          run-id: ${{ env.TESTED_RUN }}
+          github-token: ${{ github.token }}
+      - name: Verify the original bytes and publish a personal test prerelease
+        run: |
+          printf '%s  %s\n' "$EXPECTED_SHA256" verified-dmg/Sage-Keys-Apple-Silicon.dmg | sha256sum -c -
+          (cd verified-dmg && sha256sum -c DMG-SHA256.txt)
+          gh release create v0.2.4 verified-dmg/Sage-Keys-Apple-Silicon.dmg verified-dmg/DMG-SHA256.txt \
+            --target "$TESTED_COMMIT" --prerelease \
+            --title 'Sage Keys for Mac v0.2.4 · 個人測試版 DMG' \
+            --notes-file macos/releases/v0.2.4.md
+      - name: Verify the downloadable release again
+        run: |
+          gh release download v0.2.4 --pattern Sage-Keys-Apple-Silicon.dmg --dir public-download
+          printf '%s  %s\n' "$EXPECTED_SHA256" public-download/Sage-Keys-Apple-Silicon.dmg | sha256sum -c -
