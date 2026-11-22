@@ -1,4 +1,4 @@
-// Dedicated GitHub runner only. All AX operations target the two downloaded Sage Keys releases.
+// Dedicated GitHub runner only. AX and mouse operations target Finder and this test build.
 import AppKit
 import ApplicationServices
 
@@ -42,7 +42,16 @@ func click(_ app:NSRunningApplication,_ title:String,_ button:String) throws {
         }
         return found != nil
     }
-    try require(AXUIElementPerformAction(found!,kAXPressAction as CFString) == .success,"could not press "+button)
+    // NSMenu tracking can block synchronous AXPress until it times out. Click the
+    // real button at its AX-reported coordinates, as a user would, then inspect it.
+    guard let pos=attr(found!,kAXPositionAttribute),let size=attr(found!,kAXSizeAttribute),
+          CFGetTypeID(pos)==AXValueGetTypeID(),CFGetTypeID(size)==AXValueGetTypeID() else {throw CheckError("button geometry "+button)}
+    var p=CGPoint.zero,s=CGSize.zero
+    AXValueGetValue(pos as! AXValue,.cgPoint,&p);AXValueGetValue(size as! AXValue,.cgSize,&s)
+    let center=CGPoint(x:p.x+s.width/2,y:p.y+s.height/2)
+    CGEvent(mouseEventSource:nil,mouseType:.leftMouseDown,mouseCursorPosition:center,mouseButton:.left)?.post(tap:.cghidEventTap)
+    RunLoop.current.run(until:Date().addingTimeInterval(0.08))
+    CGEvent(mouseEventSource:nil,mouseType:.leftMouseUp,mouseCursorPosition:center,mouseButton:.left)?.post(tap:.cghidEventTap)
 }
 func open(_ url:URL, separateInstance:Bool = false) throws -> NSRunningApplication {
     let config=NSWorkspace.OpenConfiguration()
@@ -55,13 +64,6 @@ func open(_ url:URL, separateInstance:Bool = false) throws -> NSRunningApplicati
 }
 func quit(_ proc:NSRunningApplication) throws {
     try require(proc.terminate(),"quit rejected");try wait("process did not quit"){proc.isTerminated}
-}
-func readVersion(_ bundle:URL) throws -> String {
-    let data=try Data(contentsOf:bundle.appendingPathComponent("Contents/Info.plist"))
-    let info=try PropertyListSerialization.propertyList(from:data,format:nil) as? [String:Any]
-    guard info?["CFBundleIdentifier"] as? String == "io.github.annecat-bit.sagekeys",
-          let v=info?["CFBundleShortVersionString"] as? String else {throw CheckError("unexpected release")}
-    return v
 }
 func log(_ fields:[String:Any]) throws {
     print("DMG_TEST "+String(decoding:try JSONSerialization.data(withJSONObject:fields,options:.sortedKeys),as:UTF8.self))
