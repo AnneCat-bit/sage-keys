@@ -5,7 +5,9 @@ root="$PWD"
 build="$root/macos/build"
 evidence="$build/evidence"
 actual="$build/install-check/Sage Keys.app"
-qa="$build/Sage Keys QA.app"
+qa="/Applications/Sage Keys QA.app"
+[[ ! -e "$qa" ]]
+trap 'rm -rf "$qa"' EXIT
 mkdir -p "$evidence"
 # Validate the ZIP after a Finder-compatible extraction, then launch its actual binary.
 mkdir -p "$build/install-check"
@@ -21,7 +23,7 @@ kill -TERM "$release_pid"
 wait "$release_pid" || true
 ditto "$actual" "$qa"
 /usr/libexec/PlistBuddy -c 'Set :CFBundleIdentifier io.github.annecat-bit.sagekeys.qa' "$qa/Contents/Info.plist"
-xcrun swiftc -swift-version 5 -D SAGE_QA -O -target arm64-apple-macos13.0 macos/Sources/{PhysicalKeys,InstallationCheck,KeyMonitor,TrustedApps,SettingsLinks,GuideDrawing,PermissionGuide,PetWeb,PetApp}.swift macos/Tests/{GuideChecks,GuideExperience,DailyChecks,main}.swift -o "$qa/Contents/MacOS/SageKeys"
+xcrun swiftc -swift-version 5 -D SAGE_QA -O -target arm64-apple-macos13.0 macos/Sources/{PhysicalKeys,InstallationCheck,KeyMonitor,TrustedApps,SettingsLinks,GuideDrawing,InstallNotice,PermissionGuide,PetWeb,PetApp}.swift macos/Tests/{GuideChecks,GuideExperience,DailyChecks,main}.swift -o "$qa/Contents/MacOS/SageKeys"
 codesign --force --sign - --options runtime --timestamp=none "$qa"
 xcrun swiftc macos/Tests/GuideAX/main.swift -o "$build/guide-ax"
 python3 macos/Tests/processes.py "$evidence"

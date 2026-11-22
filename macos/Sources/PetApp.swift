@@ -38,6 +38,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
     private var protectionTimer: Timer?
     private let progress = PermissionProgress()
     private var guide: PermissionGuide?
+    private var installationNotice: InstallNotice?
     private var handledReopen = false
     private let launchHash = InstallationCheck.runningHash()
     private var recordedSigningHash = false
@@ -79,6 +80,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         display.onReady={ [weak self] value in
             guard let self = self else {return}
             self.mode=value; self.refresh()
+            _ = self.checkInstallation()
         }
         display.onFailure={ [weak self] message in self?.pauseAll(message) }
         observeSystem()
@@ -86,6 +88,40 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         panel.orderFrontRegardless()
         display.load()
         refresh()
+    }
+
+    @discardableResult
+    private func checkInstallation() -> Bool {
+        guard !closing else {return false}
+        let snapshot=InstallationCheck(previousHash:progress.lastAuthorizedHash,
+                                       previousBuild:progress.lastAuthorizedBuild,launchHash:launchHash,reopened:handledReopen)
+        if snapshot.inApplications && snapshot.otherProcesses.isEmpty && snapshot.diskMatchesRunning != false {
+            installationNotice?.window?.orderOut(nil)
+            installationNotice=nil
+            return true
+        }
+        pauseAll("請先確認安裝")
+        dismissGuide()
+        if installationNotice == nil {
+            let view=InstallNotice()
+            view.closePreview={ [weak self] in
+                self?.installationNotice?.window?.orderOut(nil)
+                self?.installationNotice=nil
+                self?.show()
+            }
+            view.quitApp={ [weak self] in self?.quit() }
+            view.refresh={ [weak self] in
+                guard let self=self else {return}
+                let fresh=InstallationCheck(previousHash:self.progress.lastAuthorizedHash,launchHash:self.launchHash)
+                if fresh.inApplications && fresh.otherProcesses.isEmpty && fresh.diskMatchesRunning != false {
+                    self.installationNotice?.window?.orderOut(nil);self.installationNotice=nil
+                } else {self.installationNotice?.update(fresh)}
+            }
+            installationNotice=view
+        }
+        installationNotice?.update(snapshot)
+        installationNotice?.present()
+        return false
     }
 
     private func button(_ b:NSButton,_ title:String,_ action:Selector) {
@@ -255,6 +291,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
     }
     private func hasPermissionOrGuide(_ intent: PendingConsent, generation: Int,
                                       process: NSRunningApplication? = nil, signature: TrustedApp? = nil) -> Bool {
+        guard checkInstallation() else {return false}
         if monitor.hasAccess {progress.observedGrant();return true}
         // The system may quit the app from its own prompt. Save the user's choice first.
         progress.stage(intent)
@@ -285,6 +322,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
     @objc private func toggleSync() {
         if armed {pauseAll("已暫停");return}
         guard display.ready else {notice="等待鍵盤載入";refresh();return}
+        guard checkInstallation() else {return}
         if selectingTarget {addFront();return}
         if channelFailed {openInstallationCheck();return}
         if progress.pending != nil {openGuide();return}
@@ -300,6 +338,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
 
     @objc private func openGuide() {
         guard !closing else {return}
+        guard checkInstallation() else {return}
         if armed {pauseAll("已暫停同步")}
         if progress.pending == nil && !monitor.hasAccess {progress.stage(.help)}
         if guide == nil {
@@ -373,6 +412,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
     }
 
     private func finishGuide() {
+        guard checkInstallation() else {return}
         guard display.ready, !closing, monitor.hasAccess else {updateGuide();return}
         guard KeyMonitor.safeSession() else {updateGuide("系統正在保護鍵盤輸入。請離開安全輸入欄，再手動確認。");return}
         switch progress.pending {
@@ -399,6 +439,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
     private static let scope = "範圍涵蓋整個 App，用目前按住的物理鍵位驅動本機鍵帽及錄音。瀏覽器的所有網站都在同一範圍內。無法辨識每個網站或密碼欄，輸入敏感資料前請暫停。"
     @objc private func addFront() {
         guard display.ready else {notice="等待鍵盤載入";refresh();return}
+        guard checkInstallation() else {return}
         guard let front = NSWorkspace.shared.frontmostApplication, eligible(front) else {
             if !armed {notice="先選取要同步的文字 App";refresh()}
             return
@@ -529,6 +570,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
         handledReopen = true
         if guide?.window?.isVisible == true {dismissGuide()}
         show()
+        _ = checkInstallation()
         return false
     }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender:NSApplication) -> Bool {false}
@@ -587,6 +629,7 @@ final class PetApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDel
     func shutdown(completion:@escaping()->Void = {}) {
         guard !closing else{return};closing=true
         endSession();demoWork?.cancel();guide?.dismiss();guide=nil
+        installationNotice?.window?.orderOut(nil);installationNotice=nil
         for (center,token) in observed {center.removeObserver(token)};observed.removeAll()
         panel?.delegate=nil;panel?.orderOut(nil)
         if let item=item {NSStatusBar.system.removeStatusItem(item)}

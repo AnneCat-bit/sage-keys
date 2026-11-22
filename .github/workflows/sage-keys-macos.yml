@@ -49,6 +49,18 @@ jobs:
             macos/build/SHA256.txt
           if-no-files-found: error
           retention-days: 30
+      - name: Create Finder disk image
+        run: bash macos/Packaging/dmg.sh
+      - name: Test Finder installation and installed application
+        run: bash macos/Tests/dmg.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Sage-Keys-Apple-Silicon-DMG
+          path: |
+            macos/build/Sage-Keys-Apple-Silicon.dmg
+            macos/build/DMG-SHA256.txt
+          retention-days: 30
+          if-no-files-found: error
       - name: Run native state and WKWebView checks
         run: bash macos/Tests/run.sh
       - uses: actions/upload-artifact@v4
