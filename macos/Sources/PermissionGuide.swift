@@ -228,7 +228,7 @@ final class PermissionGuide: NSWindowController, NSWindowDelegate {
             if let snapshot = snapshot {label(snapshot.summary)}
             if !hint.isEmpty {label(hint,13,.medium)}
             if authorized {
-                actions([("返回導覽",#selector(home))],primary:true)
+                actions([("返回導覽",#selector(home)),("繼續使用桌寵",#selector(deferGuide))],primary:true)
             } else {
                 actions([("繼續使用桌寵",#selector(deferGuide))],primary:true)
             }
