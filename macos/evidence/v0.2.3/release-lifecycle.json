@@ -1,0 +1,41 @@
+[
+  {
+    "focusReturnKeptOldSnapshot": true,
+    "manualCheckFoundActualCopy": true,
+    "step": "old-diagnostic"
+  },
+  {
+    "diskVersion": "0.2.3",
+    "finderReusedPID": 2067,
+    "firstPID": 2034,
+    "installedPath": "/Applications/Sage Keys.app",
+    "oldAliveAfterReplacement": true,
+    "oldAutoGuideLaunches": 2,
+    "oldPID": 2067,
+    "oldVersion": "0.2.2",
+    "step": "replace"
+  },
+  {
+    "diagnosingPID": 2079,
+    "otherPID": 2067,
+    "step": "concurrent-processes"
+  },
+  {
+    "AppKitDiagnostic": [
+      "執行檔（proc_pidpath）   /Applications/Sage Keys.app/Contents/MacOS/SageKeys",
+      "暫時掛載路徑特徵   未發現",
+      "CGPreflightListenEventAccess   false",
+      "IOHIDCheckAccess (ListenEvent)   unknown"
+    ],
+    "executable": "/Applications/Sage Keys.app/Contents/MacOS/SageKeys",
+    "guideOnLaunch": false,
+    "pid": 2095,
+    "signingChangeDetectedFromSeededGrant": true,
+    "step": "diagnostics"
+  },
+  {
+    "onlyPet": true,
+    "pid": 2105,
+    "step": "cancel-relaunch"
+  }
+]

@@ -1,0 +1,12 @@
+compare-update	Exercise downloaded releases in Applications and compare their signing requirements	2026-11-22T02:21:05.6166980Z Identifier=io.github.annecat-bit.sagekeys
+compare-update	Exercise downloaded releases in Applications and compare their signing requirements	2026-11-22T02:21:05.6167580Z CDHash=164c173d3c302acf5c208282dd46e5565b314ffb
+compare-update	Exercise downloaded releases in Applications and compare their signing requirements	2026-11-22T02:21:05.6167990Z Signature=adhoc
+compare-update	Exercise downloaded releases in Applications and compare their signing requirements	2026-11-22T02:21:05.6168230Z TeamIdentifier=not set
+compare-update	Exercise downloaded releases in Applications and compare their signing requirements	2026-11-22T02:21:05.6168560Z # designated => cdhash H"164c173d3c302acf5c208282dd46e5565b314ffb"
+compare-update	Exercise downloaded releases in Applications and compare their signing requirements	2026-11-22T02:21:05.6287820Z Identifier=io.github.annecat-bit.sagekeys
+compare-update	Exercise downloaded releases in Applications and compare their signing requirements	2026-11-22T02:21:05.6288230Z CDHash=8c93e04607247a2d08cb19db2cc28aea5db41975
+compare-update	Exercise downloaded releases in Applications and compare their signing requirements	2026-11-22T02:21:05.6288580Z Signature=adhoc
+compare-update	Exercise downloaded releases in Applications and compare their signing requirements	2026-11-22T02:21:05.6288860Z TeamIdentifier=not set
+compare-update	Exercise downloaded releases in Applications and compare their signing requirements	2026-11-22T02:21:05.6289140Z # designated => cdhash H"8c93e04607247a2d08cb19db2cc28aea5db41975"
+compare-update	Exercise downloaded releases in Applications and compare their signing requirements	2026-11-22T02:21:31.5697780Z test-requirement: code failed to satisfy specified code requirement(s)
+compare-update	Exercise downloaded releases in Applications and compare their signing requirements	2026-11-22T02:21:31.5700020Z New release does not satisfy the old designated requirement at the same path.

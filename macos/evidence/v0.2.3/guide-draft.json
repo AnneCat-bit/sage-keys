@@ -1,0 +1,33 @@
+{
+  "API" : {
+    "HID" : "denied",
+    "lastRequest" : false,
+    "preflight" : false
+  },
+  "checks" : [
+    "first grant needs manual start",
+    "channel failure with valid grant opens diagnostics; recovery needs manual restart",
+    "refused request preserved draft",
+    "verified real guide Settings button",
+    "blue switch reported \/ APIs denied \/ no tap",
+    "recovery pages",
+    "distinct running identity"
+  ],
+  "endpoint" : "test double, no system event source",
+  "freshDiagnosis" : {
+    "addedCopyOnFocus" : true,
+    "pathPatternCases" : 5,
+    "previewAfterClose" : true,
+    "removedCopyOnRecheck" : true
+  },
+  "installation" : {
+    "checkedRunningVsDisk" : true,
+    "fromApplications" : false,
+    "realInstalledDuplicateDetected" : true,
+    "signer" : "ad-hoc · 無開發者團隊簽署",
+    "version" : "0.2.3 (5)"
+  },
+  "phase" : "guide-draft",
+  "pid" : 5469,
+  "realTCCPreflight" : false
+}

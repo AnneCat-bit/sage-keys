@@ -1,5 +1,7 @@
 # Sage Keys for Mac v0.2.2 · 開關已開，仍無法同步
 
+本頁記錄 v0.2.2 的歷史行為。目前個人測試版已移除自動開啟導覽及反覆搬移提示。[v0.2.3 修復與實測](LIFECYCLE-v0.2.3.md)
+
 **已確認同一路徑的 ad-hoc 更新可以改變 macOS 用來核對程式的簽署要求。** 這能解釋一種更新後的失效情況。你的設定列表記住了哪一份 App、是否需要重開程序，以及裝置政策有沒有影響，仍須由你在該部 Mac 核對。v0.2.2 會先採信你看到的開關狀態，再顯示執行中程序的權限讀數，兩者可以同時成立。[下載 Apple Silicon 個人測試版](https://github.com/AnneCat-bit/sage-keys/actions/runs/44922576387/artifacts/14714312538) · [成功編譯及完整 Log](https://github.com/AnneCat-bit/sage-keys/actions/runs/44922576387) · [相對 v0.2.1 的原始碼 Diff](https://github.com/AnneCat-bit/sage-keys/compare/daf1c3ac952e148a5a7492ada7c1ae3ac5371c6c...562467ab5f013036b2bbe15f800e6d944bad637d)
 
 ## Finder 更新與恢復

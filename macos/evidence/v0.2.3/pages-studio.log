@@ -1,0 +1,10 @@
+PASS 3D starts under project subpath
+PASS English, physical Shift chord, independent cap travel and return
+PASS Native editing shortcut, three composition commits, cancelled composition, mixed text
+PASS All three WAV banks, non-silent special samples, polyphony cap, mute
+PASS Orbit drag, wheel zoom, presets, reset and quality switch
+PASS Zero idle frames, simulated window blur pauses drawing and input
+PASS Local preferences only, same-origin GETs, refresh, credits and native Escape
+2D cap released after 1.4 ms
+PASS Mobile width, WebGL-disabled fallback and physical typing
+{"browser": "156.0.8078.79", "checks": 8, "verified": "https://annecat-bit.github.io/sage-keys/", "fixture": false}
