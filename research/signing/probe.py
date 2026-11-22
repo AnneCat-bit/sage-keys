@@ -1,5 +1,6 @@
 """Disposable macOS code-identity experiment. Never signs or launches Sage Keys.
-No TCC APIs, trust overrides, user keychain, release, or durable secret storage.
+No TCC APIs, user Mac keychain, release, or durable secret storage.
+A disposable runner trusts only its test certificates for code signing, then removes them.
 Only JSON evidence leaves the runner; keys, keychains and fixtures are destroyed.
 """
 import hashlib
@@ -19,9 +20,10 @@ out=Path(sys.argv[1]);out.mkdir(parents=True,exist_ok=True)
 work=Path(tempfile.mkdtemp(prefix='sage-signing-research-',dir=os.environ['RUNNER_TEMP']))
 keychain=work/'disposable.keychain-db'
 password=secrets.token_hex(32)
+trusted_certificates=[]
 env=dict(os.environ,LAB_IDENTITY_PASSWORD=password)
 report={'scope':'Code identity only; no TCC authorization or Sage Keys build',
-        'trustOverrides':False,'tests':{},'signatures':{},'privateKeysExportedToArtifact':False}
+        'trustPolicy':'Disposable test certificates only; codeSign policy; removed before cleanup','tests':{},'signatures':{},'privateKeysExportedToArtifact':False}
 
 def run(args,label,required=True):
     # Never include command arguments in exceptions: keychain passwords are arguments.
@@ -63,7 +65,7 @@ extendedKeyUsage=critical,codeSigning
     run(['/usr/bin/security','set-key-partition-list','-S','apple-tool:,apple:,codesign:',
          '-s','-k',password,keychain],'allow codesign to use disposable key')
     key.unlink();p12.unlink()
-    return fingerprint
+    return fingerprint,cert
 
 def fixture(name,revision,identifier='io.github.annecat-bit.signing-research'):
     app=work/(name+'.app');contents=app/'Contents';binary=contents/'MacOS'/'Probe'
@@ -106,9 +108,13 @@ try:
     report['adhoc']={'bSatisfiesA':satisfies(adhocB,ra),'aSatisfiesB':satisfies(adhocA,rb)}
     check('adhoc_hashes_change',ha!=hb)
     check('adhoc_identity_breaks',not report['adhoc']['bSatisfiesA']['satisfied'] and not report['adhoc']['aSatisfiesB']['satisfied'])
-    one=identity('identity-one')
+    one,cert=identity('identity-one')
     report['keychainIdentityDiscovery']=run(['/usr/bin/security','find-identity','-p','codesigning',keychain],'inspect test identity')[1].replace(str(work),'[temporary]')
     a=fixture('persistent-a','1');b=fixture('persistent-b','2')
+    before_code,before_text=run(['/usr/bin/codesign','--force','--sign',one,'--keychain',keychain,'--timestamp=none',a],'sign before policy approval',required=False)
+    report['withoutCodeSigningTrust']={'exitCode':before_code,'output':before_text.replace(str(work),'[temporary]')}
+    trusted_certificates.append(cert)
+    run(['/usr/bin/sudo','-n','/usr/bin/security','add-trusted-cert','-d','-r','trustRoot','-p','codeSign','-k',keychain,cert],'approve only test signer for code signing on disposable runner')
     da,ha=sign(a,one)
     run(['/usr/bin/security','lock-keychain',keychain],'lock between builds')
     run(['/usr/bin/security','unlock-keychain','-p',password,keychain],'reopen the same identity')
@@ -117,7 +123,9 @@ try:
     check('new_content_changes_hash',ha!=hb)
     check('same_identity_retains_default_dr',da==db)
     check('same_identity_mutually_satisfies_dr',all(x['satisfied'] for x in report['persistent'].values()))
-    two=identity('same-name-new-identity')
+    two,cert2=identity('same-name-new-identity')
+    trusted_certificates.append(cert2)
+    run(['/usr/bin/sudo','-n','/usr/bin/security','add-trusted-cert','-d','-r','trustRoot','-p','codeSign','-k',keychain,cert2],'approve negative control signer for code signing')
     report['certificateSHA1']={'original':one,'sameNameNewKey':two}
     check('same_name_is_not_same_identity',one!=two)
     impostor=fixture('same-name-new-key','2');sign(impostor,two)
@@ -129,13 +137,21 @@ try:
     check('changing_away_from_adhoc_is_migration',not report['negativeControls']['certificateCannotMatchOldAdhoc']['satisfied'])
     code,text=run(['/usr/sbin/spctl','--assess','--type','execute','--verbose=3',b],'Gatekeeper assessment',required=False)
     report['gatekeeper']={'exitCode':code,'output':text.replace(str(work),'[temporary]')}
+    for cert in list(trusted_certificates):
+        run(['/usr/bin/sudo','-n','/usr/bin/security','remove-trusted-cert','-d',cert],'remove the temporary signer trust')
+        trusted_certificates.remove(cert)
+    after_code,after_text=run(['/usr/bin/codesign','--verify','--deep','--strict',b],'verify without signer trust',required=False)
+    report['afterRemovingSignerTrust']={'exitCode':after_code,'output':after_text.replace(str(work),'[temporary]')}
     report['result']='code-identity checks passed; TCC and user installation NOT tested'
 except Exception as e:
     report['result']='blocked';report['error']=str(e).replace(password,'[redacted]')
 finally:
+    removals=[]
+    for cert in trusted_certificates:
+        removals.append(run(['/usr/bin/sudo','-n','/usr/bin/security','remove-trusted-cert','-d',cert],'cleanup test certificate trust',required=False)[0])
     cleanup=run(['/usr/bin/security','delete-keychain',keychain],'delete disposable keychain',required=False)[0]
     shutil.rmtree(work)
-    report['cleanup']={'keychainDeletionExitCode':cleanup,'temporaryDirectoryRemoved':not work.exists()}
+    report['cleanup']={'keychainDeletionExitCode':cleanup,'temporaryDirectoryRemoved':not work.exists(),'fallbackTrustRemovalExitCodes':removals,'trustRemoved':all(code==0 for code in removals)}
     (out/'result.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
     print(json.dumps(report,ensure_ascii=False,indent=2))
 if report['result']=='blocked':sys.exit(1)
