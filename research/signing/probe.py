@@ -48,8 +48,8 @@ x509_extensions=ext
 [dn]
 CN=Sage Keys Disposable Research
 [ext]
-basicConstraints=critical,CA:TRUE
-keyUsage=critical,digitalSignature,keyCertSign
+basicConstraints=critical,CA:FALSE
+keyUsage=critical,digitalSignature
 extendedKeyUsage=critical,codeSigning
 ''')
     cert=folder/'cert.pem';key=folder/'key.pem';p12=folder/'identity.p12'
@@ -89,7 +89,9 @@ def sign(app,signer):
     return dr,cdhash
 
 def satisfies(app,requirement):
-    code,text=run(['/usr/bin/codesign','--verify','--strict','-R',requirement,app],'cross-check',required=False)
+    code,text=run(['/usr/bin/codesign','--verify','--strict','-R='+requirement,app],'cross-check',required=False)
+    if code and 'code failed to satisfy specified code requirement' not in text:
+        raise RuntimeError('requirement evaluation failed for a reason other than identity: '+text)
     return {'satisfied':code==0,'exitCode':code,'output':text.replace(str(work),'[temporary]')}
 
 try:
@@ -100,12 +102,12 @@ try:
     run(['/usr/bin/security','unlock-keychain','-p',password,keychain],'unlock disposable keychain')
     adhocA=fixture('adhoc-a','1');adhocB=fixture('adhoc-b','2')
     ra,ha=sign(adhocA,'-');rb,hb=sign(adhocB,'-')
+    check('requirement_evaluation_positive_control',satisfies(adhocA,ra)['satisfied'])
     report['adhoc']={'bSatisfiesA':satisfies(adhocB,ra),'aSatisfiesB':satisfies(adhocA,rb)}
     check('adhoc_hashes_change',ha!=hb)
     check('adhoc_identity_breaks',not report['adhoc']['bSatisfiesA']['satisfied'] and not report['adhoc']['aSatisfiesB']['satisfied'])
-    one=identity('identity-one');two=identity('same-name-new-identity')
-    report['certificateSHA1']={'original':one,'sameNameNewKey':two}
-    check('same_name_is_not_same_identity',one!=two)
+    one=identity('identity-one')
+    report['keychainIdentityDiscovery']=run(['/usr/bin/security','find-identity','-p','codesigning',keychain],'inspect test identity')[1].replace(str(work),'[temporary]')
     a=fixture('persistent-a','1');b=fixture('persistent-b','2')
     da,ha=sign(a,one)
     run(['/usr/bin/security','lock-keychain',keychain],'lock between builds')
@@ -115,6 +117,9 @@ try:
     check('new_content_changes_hash',ha!=hb)
     check('same_identity_retains_default_dr',da==db)
     check('same_identity_mutually_satisfies_dr',all(x['satisfied'] for x in report['persistent'].values()))
+    two=identity('same-name-new-identity')
+    report['certificateSHA1']={'original':one,'sameNameNewKey':two}
+    check('same_name_is_not_same_identity',one!=two)
     impostor=fixture('same-name-new-key','2');sign(impostor,two)
     otherID=fixture('same-key-other-id','2','io.github.annecat-bit.signing-research.other');sign(otherID,one)
     report['negativeControls']={'newKey':satisfies(impostor,da),'otherIdentifier':satisfies(otherID,da),
